@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "created": "2025-12-06T00:00:00Z",
+    "description": "Context tool command registry. Agents may extend by adding commands, kits, or requests."
+  },
+  "commands": {
+    "index": {
+      "status": "implemented",
+      "description": "List context files with sizes, dates, and staleness indicators",
+      "added": "2025-12-06",
+      "added_by": "bootstrap"
+    },
+    "search": {
+      "status": "implemented",
+      "description": "Wedge-style term search across context with expansion hints",
+      "added": "2025-12-06",
+      "added_by": "bootstrap",
+      "implemented": "2025-12-06",
+      "implemented_by": "sonnet-4.5"
+    },
+    "summarize": {
+      "status": "kit", 
+      "description": "Generate or retrieve agent-maintained summary at specified depth",
+      "added": "2025-12-06",
+      "added_by": "bootstrap"
+    },
+    "trust": {
+      "status": "implemented",
+      "description": "Report confidence levels and known stale regions",
+      "requested_at": "2025-12-06",
+      "requested_by": "bootstrap",
+      "kit_created": "2025-12-06",
+      "kit_author": "human+sonnet-4.5",
+      "implemented": "2025-12-06",
+      "implemented_by": "sonnet-4.5"
+    },
+    "forgive": {
+      "status": "kit",
+      "description": "Acknowledge drift, reset baseline without shame",
+      "requested_at": "2025-12-06",
+      "requested_by": "bootstrap",
+      "kit_created": "2025-12-06",
+      "kit_author": "human+sonnet-4.5"
+    },
+    "honor": {
+      "status": "kit",
+      "description": "Mark something as learned-from, now resting",
+      "requested_at": "2025-12-06",
+      "requested_by": "bootstrap",
+      "kit_created": "2025-12-06",
+      "kit_author": "human+sonnet-4.5"
+    }
+  }
+}

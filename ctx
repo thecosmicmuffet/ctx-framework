@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# ctx - Context navigation tool
+# Usage: ./ctx <command> [args...]
+#
+# Commands are discovered from ctx-registry.json
+# Missing commands return kit instructions for building them
+# Agents extend this by adding commands to ./ctx-commands/
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REGISTRY_PATH="$SCRIPT_DIR/ctx-registry.json"
+COMMANDS_DIR="$SCRIPT_DIR/ctx-commands"
+KITS_DIR="$SCRIPT_DIR/ctx-kits"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+GRAY='\033[0;90m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Bootstrap: ensure registry exists
+if [[ ! -f "$REGISTRY_PATH" ]]; then
+    cat > "$REGISTRY_PATH" << 'EOF'
+{
+  "meta": {
+    "created": "$(date -Iseconds)",
+    "description": "Context tool command registry. Agents may extend."
+  },
+  "commands": {}
+}
+EOF
+fi
+
+# No command: show help
+if [[ -z "$1" ]]; then
+    echo -e "${CYAN}ctx - Context navigation tool${NC}"
+    echo ""
+    echo -e "${GRAY}Usage: ./ctx <command> [args...]${NC}"
+    echo ""
+    echo -e "${YELLOW}Available commands:${NC}"
+    
+    # Parse registry with basic tools (jq if available, else grep)
+    if command -v jq &> /dev/null; then
+        jq -r '.commands | to_entries[] | "\(.key)|\(.value.status)|\(.value.description // "(no description)")"' "$REGISTRY_PATH" | sort | while IFS='|' read -r name status desc; do
+            case "$status" in
+                "implemented") indicator="[+]"; color="$GREEN" ;;
+                "kit")         indicator="[?]"; color="$GRAY" ;;
+                "requested")   indicator="[ ]"; color="$GRAY" ;;
+                *)             indicator="[·]"; color="$GRAY" ;;
+            esac
+            echo -e "  ${color}${indicator} ${name}${NC} - ${GRAY}${desc}${NC}"
+        done
+    else
+        echo -e "  ${GRAY}(install jq for command listing)${NC}"
+        echo -e "  ${GREEN}[+] index${NC} - List context files"
+        echo -e "  ${GRAY}[?] search${NC} - Wedge-style search (kit available)"
+    fi
+    
+    echo ""
+    echo -e "${GRAY}Legend: [+] implemented  [?] kit available  [ ] requested${NC}"
+    echo ""
+    echo -e "${GRAY}Try a command that doesn't exist to request it.${NC}"
+    exit 0
+fi
+
+COMMAND="$1"
+shift
+
+# Check if command script exists (implemented)
+if [[ -f "$COMMANDS_DIR/$COMMAND.sh" ]]; then
+    exec "$COMMANDS_DIR/$COMMAND.sh" "$@"
+fi
+
+# Check if kit exists
+if [[ -f "$KITS_DIR/$COMMAND.kit.md" ]]; then
+    echo -e "${YELLOW}COMMAND NOT YET IMPLEMENTED: $COMMAND${NC}"
+    echo ""
+    echo -e "${CYAN}A kit exists with instructions to build this command:${NC}"
+    echo -e "${GRAY}  $KITS_DIR/$COMMAND.kit.md${NC}"
+    echo ""
+    echo -e "${GRAY}--- KIT CONTENTS ---${NC}"
+    cat "$KITS_DIR/$COMMAND.kit.md"
+    echo -e "${GRAY}--- END KIT ---${NC}"
+    exit 0
+fi
+
+# Check registry for requested status
+if command -v jq &> /dev/null; then
+    status=$(jq -r ".commands[\"$COMMAND\"].status // \"unknown\"" "$REGISTRY_PATH")
+    if [[ "$status" == "requested" ]]; then
+        echo -e "${YELLOW}COMMAND REQUESTED BUT NOT YET BUILT: $COMMAND${NC}"
+        echo ""
+        echo -e "${CYAN}To implement:${NC}"
+        echo -e "${GRAY}  1. Create script: ctx-commands/$COMMAND.sh${NC}"
+        echo -e "${GRAY}  2. Or create kit: ctx-kits/$COMMAND.kit.md${NC}"
+        exit 0
+    fi
+fi
+
+# Unknown command - register as requested
+echo -e "${YELLOW}UNKNOWN COMMAND: $COMMAND${NC}"
+echo ""
+echo -e "${GRAY}This command does not exist yet.${NC}"
+echo ""
+
+# Add to registry if jq available
+if command -v jq &> /dev/null; then
+    timestamp=$(date -Iseconds)
+    jq --arg cmd "$COMMAND" --arg ts "$timestamp" --arg user "${USER:-agent}" \
+        '.commands[$cmd] = {"status": "requested", "requested_at": $ts, "requested_by": $user, "description": null}' \
+        "$REGISTRY_PATH" > "$REGISTRY_PATH.tmp" && mv "$REGISTRY_PATH.tmp" "$REGISTRY_PATH"
+    echo -e "${CYAN}Added '$COMMAND' to registry as REQUESTED.${NC}"
+fi
+
+echo ""
+echo -e "${YELLOW}Next steps for an agent:${NC}"
+echo -e "${GRAY}  1. Decide what '$COMMAND' should do${NC}"
+echo -e "${GRAY}  2. Create ctx-kits/$COMMAND.kit.md with build instructions${NC}"
+echo -e "${GRAY}  3. Or implement directly in ctx-commands/$COMMAND.sh${NC}"
