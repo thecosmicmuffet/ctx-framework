@@ -49,6 +49,15 @@
       "requested_by": "bootstrap",
       "kit_created": "2025-12-06",
       "kit_author": "human+sonnet-4.5"
+    },
+    "fear": {
+      "status": "implemented",
+      "description": "Context rotation and regrounding when path forward is unclear",
+      "requested_at": "2026-01-03",
+      "requested_by": "human",
+      "implemented": "2026-01-03",
+      "implemented_by": "sonnet-4.5",
+      "philosophy": "Fear signals loss of contact at the mold/form boundary. Enables perspective rotation to find productive momentum."
     }
   }
 }

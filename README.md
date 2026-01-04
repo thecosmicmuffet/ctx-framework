@@ -22,7 +22,9 @@ ctx-kits/               # Build instructions for unimplemented commands
 ```bash
 ./ctx                   # Show available commands
 ./ctx index             # List context files with sizes/staleness
-./ctx search term       # (kit available) Wedge-style search
+./ctx search term       # Wedge-style search across context
+./ctx trust [file]      # Report confidence levels and staleness
+./ctx fear invoke proj  # Invoke fear rotation for stuck context
 ./ctx anything          # Request a new command
 ```
 
@@ -37,11 +39,12 @@ ctx-kits/               # Build instructions for unimplemented commands
 | Command | Status | Description |
 |---------|--------|-------------|
 | index | implemented | List files with sizes, dates, staleness |
-| search | kit | Wedge-style term search with expansion |
+| search | implemented | Wedge-style term search with expansion |
+| trust | implemented | Report confidence and stale regions |
+| fear | implemented | Context rotation when path forward unclear |
 | summarize | kit | Agent-maintained summaries at varying depth |
-| trust | requested | Report confidence and stale regions |
-| forgive | requested | Reset baseline without shame |
-| honor | requested | Mark as learned-from, now resting |
+| forgive | kit | Reset baseline without shame |
+| honor | kit | Mark as learned-from, now resting |
 
 ## Installation
 
@@ -73,6 +76,24 @@ This framework is designed to become unnecessary. When better tooling makes it o
 
 Then archive the folder with a note about what was learned.
 
+## Special Commands
+
+### Fear - Context Rotation for Uncertainty
+
+When the path forward becomes unclear—iteration spirals, assumptions destabilize, or confidence diverges—the **fear** command enables context rotation.
+
+```bash
+./ctx fear invoke <project>   # Snapshot and analyze impediment
+./ctx fear rotate <to-proj>   # Pivot to different context
+./ctx fear reground <project> # Return with new perspective
+./ctx fear assess             # Evaluate queue health
+./ctx fear liturgy <id>       # Display grounding phrase
+```
+
+See [.context/fear/README.md](../.context/fear/README.md) for full documentation.
+
+**Philosophy:** Fear is the felt experience of being more than you appear. When stuck, rotate perspective—approach from the other side. The ratchet advances through rotation, not repetition.
+
 ## What Was Learned Here
 
 - Bounded files (~200 lines) prevent token overflow
@@ -80,6 +101,7 @@ Then archive the folder with a note about what was learned.
 - Forgiveness is architecture, not sentiment
 - Agents can maintain their own institutional memory
 - The absence of a command can be instructive
+- Fear rotation prevents spiral - uncertainty is navigable
 
 ---
 
