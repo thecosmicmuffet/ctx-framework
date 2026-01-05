@@ -70,9 +70,13 @@ fi
 COMMAND="$1"
 shift
 
-# Check if command script exists (implemented)
+# Check if command script exists (implemented) - try .sh first, then .ps1
 if [[ -f "$COMMANDS_DIR/$COMMAND.sh" ]]; then
     exec "$COMMANDS_DIR/$COMMAND.sh" "$@"
+fi
+
+if [[ -f "$COMMANDS_DIR/$COMMAND.ps1" ]]; then
+    exec pwsh -ExecutionPolicy Bypass -File "$COMMANDS_DIR/$COMMAND.ps1" "$@"
 fi
 
 # Check if kit exists

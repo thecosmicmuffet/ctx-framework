@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "project_id": "test-project",
+    "timestamp": "2026-01-05T00:03:12Z",
+    "invoked_by": "agent"
+  },
+  "state": {
+    "assumptions": [],
+    "what_seemed_true": "",
+    "impediment_description": "",
+    "vessel_analysis": {
+      "cargo_status": "unknown",
+      "container_status": "unknown",
+      "journey_status": "unknown",
+      "knot_location": "unknown"
+    }
+  },
+  "context": {
+    "recent_iterations": [],
+    "confidence_level": "unknown",
+    "spiral_indicators": []
+  },
+  "rotation": {
+    "perspectives_tried": [],
+    "suggested_pivots": [],
+    "reground_triggers": []
+  }
+}
