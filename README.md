@@ -11,9 +11,10 @@ This framework teaches itself through use. Commands that don't exist yet return 
 ## Structure
 
 ```
-ctx                     # Router script
+ctx                     # Router script (Bash - primary)
+ctx.ps1                 # Router script (PowerShell - fallback)
 ctx-registry.json       # Command registry (status: implemented|kit|requested)
-ctx-commands/           # Implemented commands (.sh scripts)
+ctx-commands/           # Implemented commands (.sh scripts, .ps1 fallbacks)
 ctx-kits/               # Build instructions for unimplemented commands
 ```
 
@@ -21,18 +22,19 @@ ctx-kits/               # Build instructions for unimplemented commands
 
 ```bash
 ./ctx                   # Show available commands
-./ctx index             # List context files with sizes/staleness
-./ctx search term       # Wedge-style search across context
-./ctx trust [file]      # Report confidence levels and staleness
+./ctx trust             # Report confidence levels and staleness
+./ctx index             # List context files with sizes
+./ctx search term       # Search across context files
 ./ctx fear invoke proj  # Invoke fear rotation for stuck context
-./ctx anything          # Request a new command
 ```
+
+**Note:** Commands are implemented as `.sh` (Bash) scripts. The router checks for `.sh` first, then falls back to `.ps1` (PowerShell) if needed. Works on Windows (Git Bash/WSL), macOS, and Linux.
 
 ## Command Lifecycle
 
-1. **Unknown** → Agent tries `./ctx foo`, system registers as "requested"
+1. **Unknown** → Agent requests command, system registers as "requested"
 2. **Kit** → Agent or human creates `ctx-kits/foo.kit.md` with build spec
-3. **Implemented** → Agent creates `ctx-commands/foo.sh`, marks implemented
+3. **Implemented** → Agent creates `ctx-commands/foo.sh`, marks implemented in registry
 
 ## Current Commands
 
@@ -48,8 +50,11 @@ ctx-kits/               # Build instructions for unimplemented commands
 
 ## Installation
 
-Copy this folder to your project as `scripts/ctx/` or similar. Make `ctx` executable:
+**Windows:**
+The framework is ready to use. No installation needed. PowerShell scripts run with `-ExecutionPolicy Bypass`.
 
+**Unix/Linux/macOS:**
+Make bash scripts executable:
 ```bash
 chmod +x ctx ctx-commands/*.sh
 ```
@@ -63,7 +68,7 @@ To add a command:
 
 To propose a command:
 
-1. Create `ctx-kits/yourcommand.kit.md` with spec
+1. Create `ctx-kits/yourcommand.kit.md` with build spec
 2. Update `ctx-registry.json` with status "kit"
 
 ## Disposal
@@ -84,10 +89,8 @@ When the path forward becomes unclear—iteration spirals, assumptions destabili
 
 ```bash
 ./ctx fear invoke <project>   # Snapshot and analyze impediment
-./ctx fear rotate <to-proj>   # Pivot to different context
-./ctx fear reground <project> # Return with new perspective
-./ctx fear assess             # Evaluate queue health
-./ctx fear liturgy <id>       # Display grounding phrase
+./ctx fear assess              # Evaluate queue health
+./ctx fear liturgy <id>        # Display grounding phrase
 ```
 
 See [.context/fear/README.md](../.context/fear/README.md) for full documentation.
@@ -102,7 +105,9 @@ See [.context/fear/README.md](../.context/fear/README.md) for full documentation
 - Agents can maintain their own institutional memory
 - The absence of a command can be instructive
 - Fear rotation prevents spiral - uncertainty is navigable
+- Bash-first approach aligns with agent tools and cross-platform usage
+- PowerShell fallback maintains Windows-only compatibility if needed
 
 ---
 
-*Version: 0.1.0 | Created: 2025-12-06 | Status: Bootstrap*
+*Version: 0.3.0 | Created: 2025-12-06 | Updated: 2026-01-04 | Status: Bash Primary, Cross-Platform*
