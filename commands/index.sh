@@ -3,7 +3,8 @@
 # Usage: ./ctx index [path]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONTEXT_DIR="${1:-$(dirname "$SCRIPT_DIR")/.context}"
+# Navigate from ctx-commands/ -> ctx/ -> scripts/ -> project root
+CONTEXT_DIR="${1:-$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/.ctx}"
 
 # Colors
 RED='\033[0;31m'
@@ -22,7 +23,7 @@ if [[ ! -d "$CONTEXT_DIR" ]]; then
     echo -e "${GRAY}This may mean:${NC}"
     echo -e "${GRAY}  - You're in the wrong directory${NC}"
     echo -e "${GRAY}  - Context hasn't been initialized yet${NC}"
-    echo -e "${GRAY}  - Specify a path: ./ctx index /path/to/.context${NC}"
+    echo -e "${GRAY}  - Specify a path: ./ctx index /path/to/.ctx${NC}"
     exit 1
 fi
 

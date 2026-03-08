@@ -1,17 +1,61 @@
 #!/usr/bin/env bash
-# ctx - Context navigation tool
-# Usage: ./ctx <command> [args...]
-#
-# Commands are discovered from ctx-registry.json
-# Missing commands return kit instructions for building them
-# Agents extend this by adding commands to ./ctx-commands/
+# ctx - Universal context navigation tool
+# Usage: ctx <command> [args...]
 
-set -e
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REGISTRY_PATH="$SCRIPT_DIR/ctx-registry.json"
-COMMANDS_DIR="$SCRIPT_DIR/ctx-commands"
-KITS_DIR="$SCRIPT_DIR/ctx-kits"
+# Bootstrap: Find and source core library
+find_ctx_bootstrap() {
+    # 1. CTX_HOME environment variable
+    if [[ -n "${CTX_HOME:-}" && -f "$CTX_HOME/lib/core.sh" ]]; then
+        echo "$CTX_HOME"
+        return
+    fi
+
+    # 2. User installation
+    if [[ -f "$HOME/.ctx/lib/core.sh" ]]; then
+        echo "$HOME/.ctx"
+        return
+    fi
+
+    # 3. Script location (for in-tree usage)
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ -f "$script_dir/lib/core.sh" ]]; then
+        echo "$script_dir"
+        return
+    fi
+
+    # 4. Search upward from PWD
+    local dir="$PWD"
+    while [[ "$dir" != "/" ]]; do
+        if [[ -f "$dir/ctx/lib/core.sh" ]]; then
+            echo "$dir/ctx"
+            return
+        fi
+        dir="$(dirname "$dir")"
+    done
+
+    echo ""
+}
+
+CTX_HOME=$(find_ctx_bootstrap)
+if [[ -z "$CTX_HOME" ]]; then
+    echo "Error: ctx not found" >&2
+    echo "Set CTX_HOME or run from ctx directory" >&2
+    exit 1
+fi
+
+# Export for core.sh
+export CTX_HOME
+
+# Source core library (sets up environment)
+source "$CTX_HOME/lib/core.sh"
+
+# Paths
+REGISTRY_PATH="$CTX_HOME/registry.json"
+COMMANDS_DIR="$CTX_HOME/commands"
+KITS_DIR="$CTX_HOME/kits"
 
 # Colors
 RED='\033[0;31m'
@@ -36,13 +80,13 @@ EOF
 fi
 
 # No command: show help
-if [[ -z "$1" ]]; then
-    echo -e "${CYAN}ctx - Context navigation tool${NC}"
+if [[ -z "${1:-}" ]]; then
+    echo -e "${CYAN}ctx - Universal context navigation${NC}"
     echo ""
-    echo -e "${GRAY}Usage: ./ctx <command> [args...]${NC}"
+    echo -e "${GRAY}Usage: ctx <command> [args...]${NC}"
     echo ""
     echo -e "${YELLOW}Available commands:${NC}"
-    
+
     # Parse registry with basic tools (jq if available, else grep)
     if command -v jq &> /dev/null; then
         jq -r '.commands | to_entries[] | "\(.key)|\(.value.status)|\(.value.description // "(no description)")"' "$REGISTRY_PATH" | sort | while IFS='|' read -r name status desc; do
@@ -56,10 +100,11 @@ if [[ -z "$1" ]]; then
         done
     else
         echo -e "  ${GRAY}(install jq for command listing)${NC}"
-        echo -e "  ${GREEN}[+] index${NC} - List context files"
-        echo -e "  ${GRAY}[?] search${NC} - Wedge-style search (kit available)"
+        echo -e "  ${GREEN}[+] start${NC} - Start iteration"
+        echo -e "  ${GREEN}[+] state${NC} - Query project state"
+        echo -e "  ${GRAY}[?] finish${NC} - Complete iteration (kit available)"
     fi
-    
+
     echo ""
     echo -e "${GRAY}Legend: [+] implemented  [?] kit available  [ ] requested${NC}"
     echo ""
@@ -70,13 +115,39 @@ fi
 COMMAND="$1"
 shift
 
-# Check if command script exists (implemented) - try .sh first, then .ps1
+# Alias mapping for common variants
+case "$COMMAND" in
+    decisions) COMMAND="decision" ;;
+    states) COMMAND="state" ;;
+    todo) COMMAND="todos" ;;
+    plans) COMMAND="plan" ;;
+    finds) COMMAND="find" ;;
+    searches) COMMAND="search" ;;
+    stakes) COMMAND="stake" ;;
+esac
+
+# Check if command script exists (implemented)
 if [[ -f "$COMMANDS_DIR/$COMMAND.sh" ]]; then
     exec "$COMMANDS_DIR/$COMMAND.sh" "$@"
 fi
 
+# Check if PowerShell command exists (for cross-platform)
 if [[ -f "$COMMANDS_DIR/$COMMAND.ps1" ]]; then
-    exec pwsh -ExecutionPolicy Bypass -File "$COMMANDS_DIR/$COMMAND.ps1" "$@"
+    if command -v pwsh &> /dev/null; then
+        exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$COMMANDS_DIR/$COMMAND.ps1" "$@"
+    elif command -v powershell.exe &> /dev/null; then
+        exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$COMMANDS_DIR/$COMMAND.ps1" "$@"
+    else
+        echo -e "${YELLOW}COMMAND IMPLEMENTED IN POWERSHELL ONLY: $COMMAND${NC}"
+        echo ""
+        echo -e "${GRAY}This command exists as a PowerShell script but PowerShell is not available.${NC}"
+        echo -e "${GRAY}Script location: $COMMANDS_DIR/$COMMAND.ps1${NC}"
+        echo ""
+        echo -e "${CYAN}Options:${NC}"
+        echo -e "${GRAY}  1. Install PowerShell Core (pwsh)${NC}"
+        echo -e "${GRAY}  2. Create bash version: commands/$COMMAND.sh${NC}"
+        exit 1
+    fi
 fi
 
 # Check if kit exists
@@ -84,7 +155,7 @@ if [[ -f "$KITS_DIR/$COMMAND.kit.md" ]]; then
     echo -e "${YELLOW}COMMAND NOT YET IMPLEMENTED: $COMMAND${NC}"
     echo ""
     echo -e "${CYAN}A kit exists with instructions to build this command:${NC}"
-    echo -e "${GRAY}  $KITS_DIR/$COMMAND.kit.md${NC}"
+    echo -e "${GRAY}  kits/$COMMAND.kit.md${NC}"
     echo ""
     echo -e "${GRAY}--- KIT CONTENTS ---${NC}"
     cat "$KITS_DIR/$COMMAND.kit.md"
@@ -99,8 +170,8 @@ if command -v jq &> /dev/null; then
         echo -e "${YELLOW}COMMAND REQUESTED BUT NOT YET BUILT: $COMMAND${NC}"
         echo ""
         echo -e "${CYAN}To implement:${NC}"
-        echo -e "${GRAY}  1. Create script: ctx-commands/$COMMAND.sh${NC}"
-        echo -e "${GRAY}  2. Or create kit: ctx-kits/$COMMAND.kit.md${NC}"
+        echo -e "${GRAY}  1. Create script: commands/$COMMAND.sh${NC}"
+        echo -e "${GRAY}  2. Or create kit: kits/$COMMAND.kit.md${NC}"
         exit 0
     fi
 fi
@@ -123,5 +194,5 @@ fi
 echo ""
 echo -e "${YELLOW}Next steps for an agent:${NC}"
 echo -e "${GRAY}  1. Decide what '$COMMAND' should do${NC}"
-echo -e "${GRAY}  2. Create ctx-kits/$COMMAND.kit.md with build instructions${NC}"
-echo -e "${GRAY}  3. Or implement directly in ctx-commands/$COMMAND.sh${NC}"
+echo -e "${GRAY}  2. Create kits/$COMMAND.kit.md with build instructions${NC}"
+echo -e "${GRAY}  3. Or implement directly in commands/$COMMAND.sh${NC}"

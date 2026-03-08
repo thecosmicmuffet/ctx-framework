@@ -3,6 +3,15 @@
 ## Purpose
 Wedge-style term search across context files. Returns matches with surrounding context and expansion hints pointing to related content.
 
+## Disambiguation
+
+Three location-related commands:
+- `ctx search term` - Search for text **in .ctx files** (this command)
+- `ctx find Symbol` - Find files/symbols **in codebase**
+- `ctx locate` - Determine **project identity** (git root, which clone)
+
+Scope: **.ctx directory** (state, decisions, history), not codebase.
+
 ## Behavior Specification
 
 ```
@@ -10,7 +19,7 @@ Wedge-style term search across context files. Returns matches with surrounding c
 ```
 
 ### Default behavior
-1. Search all files in .context/ for `<term>`
+1. Search all files in .ctx/ for `<term>`
 2. Return matches with 2 lines of context above/below
 3. Show file path, line number, match preview
 4. Sort by relevance (exact match > partial > related)
@@ -25,7 +34,7 @@ After showing matches, suggest related terms found near matches:
 ## Output Format
 
 ```
-SEARCH: "category" in .context/
+SEARCH: "category" in .ctx/
 
 projectObjectives.md:47
   45│   "activeStep": {

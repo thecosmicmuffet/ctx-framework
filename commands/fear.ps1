@@ -12,7 +12,7 @@ param(
     [switch]$Help
 )
 
-$FEAR_DIR = ".context/fear"
+$FEAR_DIR = ".ctx/fear"
 $QUEUE_FILE = "$FEAR_DIR/queue.json"
 $ORCHESTRATION_FILE = "$FEAR_DIR/orchestration.json"
 $LITURGIES_FILE = "$FEAR_DIR/liturgies.json"
@@ -43,7 +43,7 @@ PHILOSOPHY:
     traversed. Ask which of the three has knotted.
 
 EXAMPLES:
-    ./ctx fear invoke high-sin-prototype
+    ./ctx fear invoke app-prototype
     ./ctx fear rotate shader-experiments
     ./ctx fear liturgy submission
     ./ctx fear queue
@@ -282,7 +282,7 @@ function Show-Liturgy {
             Write-Host $liturgy.text
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             Write-Host ""
-            Write-Host "Context: $($liturgy.context)"
+            Write-Host "Context: $($liturgy.ctx)"
             Write-Host "Application: $($liturgy.application)"
             Write-Host ""
         } else {

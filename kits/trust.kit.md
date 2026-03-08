@@ -45,7 +45,7 @@ Additional context:
 ## Output Format
 
 ```
-TRUST REPORT: .context/
+TRUST REPORT: .ctx/
 
 FRESH (high confidence - use directly)
   changeLog.md              2 days old
@@ -86,9 +86,9 @@ Consider running: ./ctx forgive . --acknowledge-drift
 
 ## Integration with Other Commands
 
-- `trust` → Identifies stale regions
-- `forgive` → Resets baseline acknowledging drift
-- `honor` → Marks what was learned before archiving
+- `trust` â†’ Identifies stale regions
+- `forgive` â†’ Resets baseline acknowledging drift
+- `honor` â†’ Marks what was learned before archiving
 
 ## To Implement
 

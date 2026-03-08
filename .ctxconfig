@@ -1,0 +1,20 @@
+{
+  "breadcrumbs": {
+    "scripts": []
+  },
+  "projects": {
+    "scripts": {
+      "framework_dir": "[git]\\src\\components\\startmenu\\scripts\\ctx-framework",
+      "last_verified": "2026-01-27T11:54:25.4597650-08:00",
+      "anchors": {
+        "language": "csharp",
+        "solution": null
+      },
+      "project_root": "[git]\\Src\\Components\\StartMenu\\scripts",
+      "git_root": "D:\\oscl",
+      "context_dir": "[project]\\.context"
+    }
+  },
+  "current_project": "scripts",
+  "version": "1.0"
+}

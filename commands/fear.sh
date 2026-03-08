@@ -15,7 +15,7 @@ COLOR_BOLD='\033[1m'
 
 # Script directory and paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FEAR_DIR="$SCRIPT_DIR/.context-data/fear"
+FEAR_DIR="$SCRIPT_DIR/.ctx-data/fear"
 QUEUE_FILE="$FEAR_DIR/queue.json"
 ORCHESTRATION_FILE="$FEAR_DIR/orchestration.json"
 LITURGIES_FILE="$FEAR_DIR/liturgies.json"
@@ -56,7 +56,7 @@ PHILOSOPHY:
     traversed. Ask which of the three has knotted.
 
 EXAMPLES:
-    ./ctx fear invoke high-sin-prototype
+    ./ctx fear invoke app-prototype
     ./ctx fear rotate shader-experiments
     ./ctx fear liturgy submission
     ./ctx fear queue
@@ -421,7 +421,7 @@ show_liturgy() {
 
             if [[ -n "$liturgy_exists" ]]; then
                 local text=$(echo "$liturgy_exists" | jq -r '.text')
-                local context=$(echo "$liturgy_exists" | jq -r '.context')
+                local context=$(echo "$liturgy_exists" | jq -r '.ctx')
                 local application=$(echo "$liturgy_exists" | jq -r '.application')
 
                 echo ""

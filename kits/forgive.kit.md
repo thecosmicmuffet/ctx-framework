@@ -59,14 +59,14 @@ Next steps:
 2. Update with current reality where needed
 3. Run ./ctx trust to verify confidence restored
 
-Forgiveness recorded in .context/.forgiveness-log.json
+Forgiveness recorded in .ctx/.forgiveness-log.json
 ```
 
 ## Storage Structure
 
 ```
-.context/
-├── .forgiveness-log.json
+.ctx/
+â”œâ”€â”€ .forgiveness-log.json
 ```
 
 ### forgiveness-log.json
@@ -117,9 +117,9 @@ With forgiveness:
 
 ## Integration with Other Commands
 
-- `trust` → Identifies drift needing forgiveness
-- `forgive` → Acknowledges drift, creates opportunity for change
-- `honor` → Archives what was learned before moving on
+- `trust` â†’ Identifies drift needing forgiveness
+- `forgive` â†’ Acknowledges drift, creates opportunity for change
+- `honor` â†’ Archives what was learned before moving on
 
 The flow:
 1. `trust` reveals stale context

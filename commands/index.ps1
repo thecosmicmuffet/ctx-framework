@@ -2,7 +2,7 @@
 # ctx index - List context files with sizes and staleness
 # Usage: ./ctx index [path]
 #
-# Shows all files in .context (or specified path) with:
+# Shows all files in .ctx (or specified path) with:
 # - Size in lines (for token estimation)
 # - Last modified date
 # - Staleness indicator (days since modification)
@@ -12,8 +12,16 @@ param(
     [string]$Path
 )
 
-$ScriptRoot = Split-Path -Parent $PSScriptRoot
-$ContextDir = if ($Path) { $Path } else { Join-Path $ScriptRoot ".context" }
+# Use resolved context directory from environment if available
+$DefaultContextDir = if ($env:CTX_CONTEXT_DIR) {
+    $env:CTX_CONTEXT_DIR
+} else {
+    # Legacy fallback: Navigate from ctx-commands/ -> ctx/ -> scripts/ -> project root
+    $ScriptRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    Join-Path $ScriptRoot ".ctx"
+}
+
+$ContextDir = if ($Path) { $Path } else { $DefaultContextDir }
 
 if (-not (Test-Path $ContextDir)) {
     Write-Host "NO CONTEXT DIRECTORY FOUND" -ForegroundColor Yellow
@@ -22,7 +30,7 @@ if (-not (Test-Path $ContextDir)) {
     Write-Host "This may mean:" -ForegroundColor Gray
     Write-Host "  - You're in the wrong directory" -ForegroundColor Gray
     Write-Host "  - Context hasn't been initialized yet" -ForegroundColor Gray
-    Write-Host "  - Specify a path: ./ctx index /path/to/.context" -ForegroundColor Gray
+    Write-Host "  - Specify a path: ./ctx index /path/to/.ctx" -ForegroundColor Gray
     exit 1
 }
 

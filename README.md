@@ -1,75 +1,292 @@
 # ctx - Context Navigation Framework
 
-A bootstrapping toolkit for agent-maintained context management.
+**A self-teaching toolkit for agent-maintained context management.**
+
+---
+
+## For Agents: Start Here Every Iteration
+
+**Commands are tokens that execute and grow. Your workflow:**
+
+1. **List available commands:**
+   ```powershell
+   .\scripts\ctx\ctx.ps1
+   ```
+
+2. **Load current state:**
+   ```powershell
+   .\scripts\ctx\ctx.ps1 start
+   ```
+
+3. **When you need context data, use ctx commands:**
+   - `ctx state` - Current work (**NOT** `read_file state.md`)
+   - `ctx todos` - Pending tasks (**NOT** `read_file TODOS.md`)
+   - `ctx decisions` - Why things are this way (**NOT** `read_file decisions.md`)
+   - `ctx search term` - Find text in context (**NOT** `grep_search`)
+   - `ctx history` - Recent changes (**NOT** `read_file history.md`)
+
+4. **If command doesn't exist:**
+   ```powershell
+   # Command returns kit instructions
+   ctx todos complete 7
+   # → "Not implemented. Kit exists: ctx-kits/todos.kit.md"
+   
+   # READ the kit, IMPLEMENT the command, UPDATE registry
+   # Then use the command you just built
+   ```
+
+5. **When updating context, grow commands instead of bypassing:**
+   - Need `ctx todos complete <id>`? → Implement it
+   - Need `ctx state update`? → Implement it
+   - Need `ctx history log`? → Implement it
+
+6. **Complete iteration:**
+   ```powershell
+   .\scripts\ctx\ctx.ps1 finish --continue-mission
+   ```
+
+**Why this matters:**
+- **Read is the on-ramp to execute** - Investigation leads to routinization
+- **Commands grow through use** - Rewrite functions to handle new cases, don't bypass
+- **Territory has three states:**
+  1. **Unmapped** → Explore (search, read files)
+  2. **Mapped** → Routinize (implement command from kit)
+  3. **Routinized** → Execute deterministically (use command)
+- **Bypassing is regression** - Every `read_file state.md` instead of `ctx state` returns you to state 1
+- **Avoid ambiguity** - Deterministic commands prevent "hallucination" accusations
+
+**The goal:** All operations should progress toward routinized execution. Previous agents built these patterns. Extend them, don't bypass them.
+
+---
+
+## Quick Start (Human Contributors)
+
+```powershell
+# First time: Create context
+.\scripts\ctx\bootstrap.ps1
+
+# Start iteration (work cycle)
+.\scripts\ctx\ctx.ps1 start
+
+# ... do work ...
+
+# Complete iteration
+.\scripts\ctx\ctx.ps1 finish --continue-mission
+```
+
+**Terminology:**
+- **Agent** = Human or AI contributor
+- **Iteration** = Complete work cycle (from `ctx start` to `ctx finish`)
+- **Mission** = Long-term objective spanning multiple iterations
+- **Process** = The larger corporate/economic work we contribute to
+
+Iterations ≠ AI sessions. An iteration may span multiple context windows.
+
+---
 
 ## Philosophy
 
-This framework teaches itself through use. Commands that don't exist yet return instructions for building them. Agents extend the system by implementing what they need. Humans intervene at environment boundaries.
+This framework teaches itself through use. Commands that don't exist yet return instructions for building them. The goal: **Make starting from scratch dignified.** Assume staleness. Work with confidence levels. Conceal information until needed.
 
-**The goal:** Make "starting from scratch" a dignified path. Assume staleness. Treat handoffs as gifts, not contracts. Track confidence decay explicitly.
+**Key principle:** Wedge-style investigation. Don't read all files. Invoke commands that surface exactly what you need.
 
 ## Structure
 
 ```
-ctx                     # Router script (Bash - primary)
-ctx.ps1                 # Router script (PowerShell - fallback)
+ctx / ctx.ps1           # Router script (bash/PowerShell)
+bootstrap.sh/ps1        # Initialize new context directory
 ctx-registry.json       # Command registry (status: implemented|kit|requested)
-ctx-commands/           # Implemented commands (.sh scripts, .ps1 fallbacks)
+ctx-commands/           # Implemented commands (.sh or .ps1 scripts)
 ctx-kits/               # Build instructions for unimplemented commands
+examples/               # Sample context files for reference
 ```
 
 ## Usage
 
-```bash
-./ctx                   # Show available commands
-./ctx trust             # Report confidence levels and staleness
-./ctx index             # List context files with sizes
-./ctx search term       # Search across context files
-./ctx fear invoke proj  # Invoke fear rotation for stuck context
+The framework is cross-platform (bash/PowerShell).
+
+### Core Commands
+
+```powershell
+.\ctx.ps1 start        # Entry point - current work, recent history, todos
+.\ctx.ps1 state        # Show project state details
+.\ctx.ps1 history      # Recent changes
+.\ctx.ps1 todos        # Pending work
+.\ctx.ps1 decisions    # Why things are this way
+
+.\ctx.ps1 find Symbol  # Find files in codebase (not filesystem search)
+.\ctx.ps1 search term  # Search text in .ctx files
+.\ctx.ps1 locate       # Project identity (git root, which clone)
+.\ctx.ps1 index        # List context files with staleness
 ```
 
-**Note:** Commands are implemented as `.sh` (Bash) scripts. The router checks for `.sh` first, then falls back to `.ps1` (PowerShell) if needed. Works on Windows (Git Bash/WSL), macOS, and Linux.
+**Disambiguation:**
+- `find` searches **codebase** for files/symbols
+- `search` searches **.ctx** for text
+- `locate` determines **project identity** (which git repo/clone)
+
+### Command Discovery
+
+```powershell
+.\ctx.ps1              # List all available commands
+.\ctx.ps1 newcommand   # Request a command (gets added to registry)
+```Try `.\ctx.ps1 foo`, system registers as "requested"
+2. **Kit** → Someone creates `ctx-kits/foo.kit.md` with spec
+3. **Implemented** → Create `ctx-commands/foo.ps1` (and/or `.sh`), update registry
+
+Kits use simple, stable language to prevent random implementation divergence.
+
+### Augmented Headers
+
+Commands show where they're operating:
+```
+[git:D:\oscl ctx:[git]\...\StartMenu\.ctx cmd:search:exists]
+```
+
+Add `--quiet` to suppress when confident.
 
 ## Command Lifecycle
 
-1. **Unknown** → Agent requests command, system registers as "requested"
+Commands evolve through use. This is expected behavior:
+
+1. **Unknown/Requested** → Agent tries `ctx foo`, system registers as "requested"
 2. **Kit** → Agent or human creates `ctx-kits/foo.kit.md` with build spec
-3. **Implemented** → Agent creates `ctx-commands/foo.sh`, marks implemented in registry
+3. **Implemented** → Agent creates `ctx-commands/foo.ps1` (and/or `.sh`), updates registry
+4. **Growing** → Agent rewrites command to handle new cases (`ctx foo --complete`, `ctx foo --filter`)
+
+**Commands should grow, not be bypassed.** If `ctx todos` lists todos but can't complete them, implement `ctx todos complete <id>`. If `ctx state` shows state but can't update it, implement `ctx state update`. This is the natural progression from read → execute.
+
+**For agents:** When a command exists but doesn't do what you need, extend it. When it doesn't exist, implement it. Never bypass ctx with `read_file` / `grep_search` for context operations.
 
 ## Current Commands
 
 | Command | Status | Description |
 |---------|--------|-------------|
-| index | implemented | List files with sizes, dates, staleness |
-| search | implemented | Wedge-style term search with expansion |
-| trust | implemented | Report confidence and stale regions |
-| fear | implemented | Context rotation when path forward unclear |
+| index | implemented | List files with sizes, dates, staleness (bash + PowerShell) |
+| search | implemented | Wedge-style term search across context with expansion |
+| fear | implemented | Autonomous loop breakout via project rotation (bash + PowerShell) |
+| start | kit | Deterministic entry point - current work, history, todos |
+| finish | kit | Complete iteration, update history, archive |
+| state | kit | Show project state (replaces reading state.md) |
+| todos | kit | Show pending work (replaces reading TODOS.md) |
+| find | kit | Find files/symbols in codebase |
+| locate | kit | Project identity resolution and switching |
+| trust | kit | Report confidence levels and stale regions |
 | summarize | kit | Agent-maintained summaries at varying depth |
 | forgive | kit | Reset baseline without shame |
-| honor | kit | Mark as learned-from, now resting |
+| honor | kit | Archive as learned-from with extracted lessons |
+| contract | kit | Generate lean agent contracts |
+| stake | kit | Map decisions to responsibility concerns |
 
-## Installation
+## IFor New Projects
 
-**Windows:**
-The framework is ready to use. No installation needed. PowerShell scripts run with `-ExecutionPolicy Bypass`.
+```powershell
+# From your project root
+.\scripts\ctx\bootstrap.ps1
 
-**Unix/Linux/macOS:**
-Make bash scripts executable:
-```bash
-chmod +x ctx ctx-commands/*.sh
+# Creates .ctx/ and .ctxconfig with auto-detected settings
 ```
 
-## Extending
+Edit `.ctx/state.md` with your project details and start working.
 
-To add a command:
+### For Existing Projects
 
+1. Copy this folder to `scripts/ctx/`
+2. Run bootstrap (creates .ctx/ and .ctxconfig)
+3. Ensure scripts are executable
+
+```powershell
+# PowerShell (Windows)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Bash (Linux/macOS/WSL)
+chmod +x ctx ctx-commands/*.sh bootstrap.sh
+```
+
+If migrating from an old context protocol, see the MIGRATION.md file created by bootstrap.
+
+## Extending Commands (For Agents)
+
+**When you need functionality:**
+
+### 1. Check if command exists:
+```powershell
+.\ctx.ps1 todos
+# → Works? Use it.
+# → Kit exists? Implement it.
+# → Doesn't exist? Propose it.
+```
+
+### 2. Implement from kit:
+```powershell
+# Read the kit
+cat ctx-kits/todos.kit.md
+
+# Create implementation
+# For PowerShell (Windows):
+# Create ctx-commands/todos.ps1 per kit instructions
+
+# For Bash (Linux/macOS):
+# Create ctx-commands/todos.sh per kit instructions
+
+# Update registry status
+# Change "kit" → "implemented" in ctx-registry.json
+```
+
+### 3. Grow existing command:
+```powershell
+# Command exists but lacks feature?
+# Read current implementation:
+cat ctx-commands/todos.ps1
+
+# Add functionality (e.g., --complete flag)
+# Rewrite to handle new case
+# Don't create todos-complete.ps1 - grow todos.ps1
+```
+
+### 4. Propose new command:
+```powershell
+# Create kit with stable language:
+# Write ctx-kits/mycommand.kit.md with purpose and behavior
+
+# Register as kit:
+# Add to ctx-registry.json with status "kit"
+```
+
+**Remember:** Commands are living functions. They should grow through use, not be bypassed or duplicated.
+
+## Extending (For Manual Implementation)
+
+### To add a command:
+
+#### Bash
 1. Create `ctx-commands/yourcommand.sh`
 2. Update `ctx-registry.json` with status "implemented"
 
-To propose a command:
+#### PowerShell
+1. Create `ctx-commands/yourcommand.ps1`
+2. Update `ctx-registry.json` with status "implemented"
 
-1. Create `ctx-kits/yourcommand.kit.md` with build spec
+#### Cross-platform
+For maximum portability, implement both `.sh` and `.ps1` versions. The router will automatically use the appropriate one for the environment.
+
+### To propose a command:
+
+1. Create `ctx-kits/yourcommand.kit.md` with spec
 2. Update `ctx-registry.json` with status "kit"
+
+## Implementation Notes
+
+**Command script guidelines:**
+- **Bash scripts** (`.sh`): Use `#!/usr/bin/env bash` shebang, support POSIX when possible
+- **PowerShell scripts** (`.ps1`): Use `#!/usr/bin/env pwsh` shebang for cross-platform PowerShell
+- Both should accept the same parameters for consistent UX
+- Exit with appropriate status codes (0 = success, non-zero = error)
+
+**Router behavior:**
+- `ctx.ps1` prefers `.ps1` commands, falls back to `.sh` if bash is available
+- `ctx` (bash) prefers `.sh` commands
+- Both routers read the same `ctx-registry.json` registry
 
 ## Disposal
 
@@ -77,37 +294,77 @@ This framework is designed to become unnecessary. When better tooling makes it o
 
 ```bash
 ./ctx honor .
+# or
+.\ctx.ps1 honor .
+```
+Add a command:
+
+1. Create `ctx-commands/yourcommand.ps1` (and/or `.sh`)
+2. Update `ctx-registry.json` status to "implemented"
+
+### Propose a command:
+
+1. Create `ctx-kits/yourcommand.kit.md` with spec
+2. Update `ctx-registry.json` status to "kit"
+
+Use simple, stable language in kits to prevent implementation divergence.
+
+## Structure & File Locations
+
+```
+ProjectRoot/
+  ├── .ctx/              # Iteration context (gitignored)
+  ├── .ctxconfig             # Path resolution config
+  ├── scripts/
+  │   ├── scripts.md         # Project scripts documentation
+  │   └── ctx/     # This framework
+  └── StartMenu.sln
 ```
 
-Then archive the folder with a note about what was learned.
+**scripts.md**: Project-level file documenting ALL scripts. Does not assume ctx use.  
+**.ctx**: Flexible location, typically gitignored. Archive completed iterations to track history.  
+**.ctxconfig**: Generated by bootstrap, manages multi-project path resolution.
 
-## Special Commands
-
-### Fear - Context Rotation for Uncertainty
-
-When the path forward becomes unclear—iteration spirals, assumptions destabilize, or confidence diverges—the **fear** command enables context rotation.
-
-```bash
-./ctx fear invoke <project>   # Snapshot and analyze impediment
-./ctx fear assess              # Evaluate queue health
-./ctx fear liturgy <id>        # Display grounding phrase
+**Recommended .gitignore:**
 ```
-
-See [.context/fear/README.md](../.context/fear/README.md) for full documentation.
-
-**Philosophy:** Fear is the felt experience of being more than you appear. When stuck, rotate perspective—approach from the other side. The ratchet advances through rotation, not repetition.
-
-## What Was Learned Here
-
-- Bounded files (~200 lines) prevent token overflow
-- Paths not taken stabilize decisions
-- Forgiveness is architecture, not sentiment
-- Agents can maintain their own institutional memory
-- The absence of a command can be instructive
-- Fear rotation prevents spiral - uncertainty is navigable
-- Bash-first approach aligns with agent tools and cross-platform usage
-- PowerShell fallback maintains Windows-only compatibility if needed
+.ctx/
+!.ctx/archive/
+```
 
 ---
 
-*Version: 0.3.0 | Created: 2025-12-06 | Updated: 2026-01-04 | Status: Bash Primary, Cross-Platform*
+## Status & Future Work
+
+**Completed:**
+- Path resolution with .ctxconfig
+- Augmented headers showing git/ctx/cmd
+- Bootstrap auto-detection
+- Multi-project support foundation
+
+**High Priority:**
+- Implement `start` command (deterministic entry point)
+- Implement `locate` command (project switching)
+- Implement `todos`, `state`, `where` commands
+- Add test coverage
+
+**Medium Priority:**
+- Complete `trust`, `forgive`, `honor` commands
+- Bash router path resolution
+- Cross-platform testing
+
+See `ctx.ps1 todos` when implemented, or TODOS.md for detailed tracking.
+
+---
+
+## What Was Learned
+
+- Bounded files prevent token overflow
+- Commands over file reading prevent expansion
+- Path resolution prevents wrong-repo failures
+- Simple kit language prevents random implementations
+- Information concealment keeps focus narrow
+- Wedge-style investigation beats full-context reading
+
+---
+
+*Version: 0.2.0 | Created: 2025-12-06 | Updated: 2026-01-07

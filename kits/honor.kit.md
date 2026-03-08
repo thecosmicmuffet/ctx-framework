@@ -36,7 +36,7 @@ With honor:
 ```
 - Records what was learned
 - Marks plan as "honored" (not active, not abandoned)
-- Optionally moves to `.context/honored/` archive
+- Optionally moves to `.ctx/honored/` archive
 
 ### Honor a file/directory
 ```
@@ -65,14 +65,14 @@ Lesson learned:
    now understood and can guide future work without this specific plan."
 
 Status: HONORED
-Original intent: ✓ Achieved (via different path than planned)
+Original intent: âœ“ Achieved (via different path than planned)
 Completion: 4/6 steps (66%)
 Created: 2025-10-17 (49 days ago)
 Honored: 2025-12-06 (by sonnet-4.5)
 
-Archive action: Moved to .context/honored/plans/
-  → plan-raylib-bootstrap.md
-  → plan-raylib-bootstrap.lessons.md (extracted)
+Archive action: Moved to .ctx/honored/plans/
+  â†’ plan-raylib-bootstrap.md
+  â†’ plan-raylib-bootstrap.lessons.md (extracted)
 
 This plan can now rest. Its wisdom lives on in:
   - ARCHITECTURE.md (AD-001: Shader-first rendering)
@@ -85,14 +85,14 @@ Run './ctx search shader-first' to see how this lesson propagated.
 ## Storage Structure
 
 ```
-.context/
-├── honored/
-│   ├── plans/
-│   │   ├── plan-raylib-bootstrap.md
-│   │   └── plan-raylib-bootstrap.lessons.md
-│   ├── handoffs/
-│   │   └── 2025-10-iteration-series.lessons.md
-│   └── honor-registry.json
+.ctx/
+â”œâ”€â”€ honored/
+â”‚   â”œâ”€â”€ plans/
+â”‚   â”‚   â”œâ”€â”€ plan-raylib-bootstrap.md
+â”‚   â”‚   â””â”€â”€ plan-raylib-bootstrap.lessons.md
+â”‚   â”œâ”€â”€ handoffs/
+â”‚   â”‚   â””â”€â”€ 2025-10-iteration-series.lessons.md
+â”‚   â””â”€â”€ honor-registry.json
 ```
 
 ### honor-registry.json
@@ -140,7 +140,7 @@ Intent-based evaluation asks:
 - *What did we learn along the way?* (the value)
 - *Can this now rest?* (closure)
 
-If yes → honor it, archive the lesson, move forward unburdened.
+If yes â†’ honor it, archive the lesson, move forward unburdened.
 
 ## Integration with Other Commands
 
@@ -171,7 +171,7 @@ Honor prevents pathological loops:
 From README:
 > "This framework is designed to become unnecessary. When better tooling makes it obsolete, run: `./ctx honor .`"
 
-The ultimate honor: when ctx-framework itself has taught you what you needed and can be archived. The commands themselves become training wheels you no longer need.
+The ultimate honor: when ctx itself has taught you what you needed and can be archived. The commands themselves become training wheels you no longer need.
 
 ## Edge Cases
 

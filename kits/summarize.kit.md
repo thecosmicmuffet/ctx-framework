@@ -21,7 +21,7 @@ Returns cached summary if fresh, or note that refresh needed.
 ```
 ./ctx summarize projectObjectives.md --refresh
 ```
-Agent generates new summary, stores in `.context/.summaries/`
+Agent generates new summary, stores in `.ctx/.summaries/`
 
 **All files:**
 ```
@@ -48,7 +48,7 @@ Returns brief summaries of all context files.
 ## Storage Structure
 
 ```
-.context/
+.ctx/
 ├── .summaries/
 │   ├── manifest.json           # Tracks freshness
 │   ├── projectObjectives.brief.md
