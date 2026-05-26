@@ -13,29 +13,82 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Guard: ctx requires PowerShell 7.4+. Windows PowerShell 5.1 has parsing bugs that break here-strings and scriptblocks.
+if ($PSVersionTable.PSVersion.Major -lt 7 -or ($PSVersionTable.PSVersion.Major -eq 7 -and $PSVersionTable.PSVersion.Minor -lt 4)) {
+    Write-Host ""
+    Write-Host "  ctx requires PowerShell 7.4 or later." -ForegroundColor Red
+    Write-Host "  You are running: PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Open a 'PowerShell' (pwsh) terminal, not 'Windows PowerShell'." -ForegroundColor White
+    Write-Host "  Install/upgrade: winget install Microsoft.PowerShell" -ForegroundColor Gray
+    Write-Host ""
+    exit 1
+}
+
 $Command = $null
 $Arguments = @()
+$GlobalProject = $null
 
 if ($AllArgs -and $AllArgs.Count -gt 0) {
-    $Command = $AllArgs[0]
-    if ($AllArgs.Count -gt 1) {
-        $Arguments = $AllArgs[1..($AllArgs.Count - 1)]
+    # Pre-parse global --project flag before command dispatch.
+    # Syntax: ctx --project <name> <command> [args...]
+    #     or: ctx <command> --project <name> [args...]
+    # Strips --project <name> from args and resolves project for all commands.
+    $filtered = [System.Collections.Generic.List[string]]::new()
+    $i = 0
+    while ($i -lt $AllArgs.Count) {
+        if ($AllArgs[$i] -in @('--project', '--at') -and ($i + 1) -lt $AllArgs.Count) {
+            $GlobalProject = $AllArgs[$i + 1]
+            $i += 2
+            continue
+        }
+        $filtered.Add($AllArgs[$i])
+        $i++
+    }
+    if ($filtered.Count -gt 0) {
+        $Command = $filtered[0]
+        if ($filtered.Count -gt 1) {
+            $Arguments = @($filtered[1..($filtered.Count - 1)])
+        }
     }
 }
 
-# Alias mapping for common variants (prevents "decisions" vs "decision" confusion)
-$CommandAliases = @{
-    "decisions" = "decision"
-    "states"    = "state"
-    "todo"      = "todos"
-    "plans"     = "plan"
-    "finds"     = "find"
-    "searches"  = "search"
-    "stakes"    = "stake"
+# Alias mapping — load from aliases.json (concept routing, not just plurals)
+$AliasesFile = Join-Path $PSScriptRoot "aliases.json"
+$CommandAliases = @{}
+if (Test-Path $AliasesFile) {
+    try {
+        $aliasLines = Get-Content $AliasesFile | Where-Object { $_ -notmatch '^\s*//' }
+        $aliasData = ($aliasLines -join "`n") | ConvertFrom-Json
+        foreach ($prop in $aliasData.aliases.PSObject.Properties) {
+            $CommandAliases[$prop.Name] = $prop.Value.target
+        }
+    } catch {
+        # Fallback: hardcoded aliases if file is corrupt
+        $CommandAliases = @{
+            "decisions" = "decision"; "states" = "state"; "todo" = "todos"
+            "plans" = "plan"; "finds" = "find"; "searches" = "search"; "stakes" = "stake"
+        }
+    }
+} else {
+    $CommandAliases = @{
+        "decisions" = "decision"; "states" = "state"; "todo" = "todos"
+        "plans" = "plan"; "finds" = "find"; "searches" = "search"; "stakes" = "stake"
+    }
 }
 
 if ($Command -and $CommandAliases.ContainsKey($Command)) {
+    $originalCommand = $Command
     $Command = $CommandAliases[$Command]
+    # Follow chains (alias target may itself be aliased)
+    $depth = 0
+    while ($CommandAliases.ContainsKey($Command) -and $depth -lt 5) {
+        $Command = $CommandAliases[$Command]
+        $depth++
+    }
+    if ($originalCommand -ne $Command) {
+        Write-Host "[alias: $originalCommand → $Command]" -ForegroundColor DarkGray
+    }
 }
 
 # Bootstrap: Find CTX_HOME
@@ -155,6 +208,61 @@ if (-not (Test-Path $RegistryPath)) {
     $bootstrapRegistry | ConvertTo-Json -Depth 10 | Set-Content $RegistryPath
 }
 
+# ── Global --project resolution ──────────────────────────────────────
+# When --project <name> is passed, resolve the named project and override
+# all CTX_* env vars BEFORE dispatching to any command.
+# This means every command automatically targets the specified project
+# without needing per-command --project handling.
+if ($GlobalProject) {
+    # Load resolution libraries
+    $libDir = Join-Path $CtxHome "lib"
+    . (Join-Path $libDir "resolve.ps1")
+    $addPath = Join-Path $libDir "resolve-additions.ps1"
+    if (Test-Path $addPath) { . $addPath }
+
+    $resolved = Resolve-CtxProjectByName $GlobalProject
+    if (-not $resolved) {
+        Write-Host "Project '$GlobalProject' not found in @ctx registry." -ForegroundColor Red
+        Write-Host ""
+        # Show available projects
+        $atCtx = Find-AtCtxDir
+        if ($atCtx) {
+            $reg = Get-AtCtxRegistry
+            if ($reg -and $reg.projects) {
+                Write-Host "Available projects:" -ForegroundColor Yellow
+                foreach ($p in $reg.projects.PSObject.Properties) {
+                    $name = if ($p.Value.name) { $p.Value.name } else { "(unnamed)" }
+                    $kw = if ($p.Value.keywords) { ($p.Value.keywords -join ", ") } else { "" }
+                    Write-Host "  $($p.Name)  $name" -ForegroundColor Gray -NoNewline
+                    if ($kw) { Write-Host "  [$kw]" -ForegroundColor DarkGray } else { Write-Host "" }
+                }
+            }
+        }
+        exit 1
+    }
+
+    # Override env vars — all downstream commands will see these
+    $env:CTX_PROJECT_ID = $resolved.ProjectId
+    $env:CTX_PROJECT_NAME = $resolved.ProjectName
+    $env:CTX_CONTEXT_DIR = $resolved.ContextDir
+    $env:CTX_ATCTX_DIR = $resolved.AtCtxDir
+    $env:CTX_RESOLVE_METHOD = $resolved.Method
+    if ($resolved.CanonicalRoot) {
+        $env:CTX_PROJECT_ROOT = $resolved.CanonicalRoot
+        $env:CTX_GIT_ROOT = $resolved.CanonicalRoot
+    }
+    if ($resolved.Type) {
+        $env:CTX_PROJECT_TYPE = $resolved.Type
+    }
+
+    # Ensure context dir exists
+    if (-not (Test-Path $resolved.ContextDir)) {
+        New-Item -ItemType Directory -Path $resolved.ContextDir -Force | Out-Null
+    }
+
+    Write-Host "[project: $($resolved.ProjectId) ($($resolved.ProjectName))]" -ForegroundColor DarkCyan
+}
+
 # Load registry
 $registry = Get-Content $RegistryPath -Raw | ConvertFrom-Json
 
@@ -212,26 +320,66 @@ if ($ShowHeader -and $LocationContext) {
     }
     
     Write-Host "[git:$gitRoot ctx:$ctxDir cmd:$Command`:$cmdStatus]" -ForegroundColor DarkGray
-    Write-Host ([string]::new('─', 60)) -ForegroundColor DarkGray
+    Write-Host ('-' * 60) -ForegroundColor DarkGray
+}
+
+# ── Telemetry: record command invocation ──────────────────────────────
+# Per-machine JSONL via OneDrive-safe event pattern. Each machine writes its
+# own file; ctx metrics merges them on read. See lib/onedrive-safe-write.ps1.
+try {
+    $telemetryDir = $null
+    $skillRoot = Split-Path -Parent $CtxHome
+    $atCtxTelemetry = Join-Path $skillRoot "@ctx"
+    if (Test-Path $atCtxTelemetry) { $telemetryDir = $atCtxTelemetry }
+    elseif ($env:CTX_ATCTX_DIR) { $telemetryDir = $env:CTX_ATCTX_DIR }
+
+    if ($telemetryDir) {
+        $ps1Exists_ = Test-Path (Join-Path $CommandsDir "$Command.ps1")
+        $shExists_ = Test-Path (Join-Path $CommandsDir "$Command.sh")
+        $kitExists_ = Test-Path (Join-Path $KitsDir "$Command.kit.md")
+        $cmdStatus_ = if ($ps1Exists_ -or $shExists_) { "implemented" }
+                      elseif ($kitExists_) { "kit" }
+                      else { "requested" }
+
+        $machineId = if ($env:COMPUTERNAME) { $env:COMPUTERNAME.ToLower() } else { "unknown" }
+        $telFile = Join-Path $telemetryDir "telemetry-$machineId.jsonl"
+        $telEntry = @{
+            ts = (Get-Date -Format "o")
+            cmd = $Command
+            status = $cmdStatus_
+            machine = $machineId
+            project = if ($env:CTX_PROJECT_ID) { $env:CTX_PROJECT_ID } else { $null }
+            targeted = [bool]$GlobalProject
+        } | ConvertTo-Json -Compress
+
+        [System.IO.File]::AppendAllText($telFile, "$telEntry`n")
+    }
+} catch {
+    # Telemetry must never block command execution
 }
 
 # Check if PowerShell command script exists (implemented)
 $ps1Script = Join-Path $CommandsDir "$Command.ps1"
 if (Test-Path $ps1Script) {
-    # Build argument string and invoke with Invoke-Expression for proper parameter handling
-    # Convert --param to -Param for PowerShell compatibility
+    # Invoke sub-script via scriptblock to avoid:
+    #   - Invoke-Expression here-string parse bugs (PS 7.4)
+    #   - Array splatting positional/named confusion
+    # Build a clean command string, create a scriptblock, execute it.
     if ($Arguments.Count -gt 0) {
-        $argString = ($Arguments | ForEach-Object { 
+        $quotedArgs = $Arguments | ForEach-Object {
             if ($_ -match '^--(.+)') {
-                # Convert --param to -Param
+                # Convert --param to -Param for PowerShell
                 "-$($matches[1])"
-            } elseif ($_ -match '^-') {
-                $_
+            } elseif ($_ -match '[\s''"]' -or $_ -eq '') {
+                # Quote args with spaces or special chars
+                "'$($_ -replace "'", "''")'"
             } else {
-                "'$_'"
+                $_
             }
-        }) -join ' '
-        Invoke-Expression "& '$ps1Script' $argString"
+        }
+        $argLine = $quotedArgs -join ' '
+        $sb = [scriptblock]::Create("& '$($ps1Script -replace "'", "''")' $argLine")
+        & $sb
     } else {
         & $ps1Script
     }

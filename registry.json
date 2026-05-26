@@ -1,165 +1,191 @@
 {
   "meta": {
-    "created": "2025-12-06T00:00:00Z",
-    "updated": "2025-12-12T00:00:00Z",
-    "description": "Context tool command registry. Agents may extend by adding commands, kits, or requests."
+    "created": "2026-05-25T00:00:00Z",
+    "updated": "2026-05-25T00:00:00Z",
+    "description": "Home edition ctx command registry.",
+    "tokens": {
+      "@": "ANCHOR — where things are",
+      ">": "HEADING — where you're going",
+      ":": "FOCUS — what you're doing now",
+      ";": "SEQUENCE — transitions and checkpoints",
+      "?": "QUERY — discovery and scanning",
+      "+": "RECORD — accumulated knowledge",
+      "~": "ASSESS — freshness and approximation",
+      "!": "BIND — commitment and deliberate signals",
+      ".": "EMIT — compact chart output"
+    },
+    "research_tree": {
+      "description": "Lightweight growth map for home use.",
+      "paths": [
+        {
+          "from": "register",
+          "to": "chart",
+          "relation": "registration enables project chart resolution"
+        },
+        {
+          "from": "chart",
+          "to": "dock",
+          "relation": "dock persists the current chart"
+        },
+        {
+          "from": "state",
+          "to": "start",
+          "relation": "start expands orientation from current state"
+        },
+        {
+          "from": "todos",
+          "to": "start",
+          "relation": "start surfaces near work"
+        },
+        {
+          "from": "search",
+          "to": "topic",
+          "relation": "search results can crystallize into topics"
+        },
+        {
+          "from": "decision",
+          "to": "plan",
+          "relation": "decisions shape planning"
+        },
+        {
+          "from": "grip",
+          "to": "session",
+          "relation": "grip gives named sessions durable memory"
+        },
+        {
+          "from": "pack",
+          "to": "unpack",
+          "relation": "portable archives restore into a fresh harbor"
+        }
+      ]
+    }
   },
   "commands": {
-    "index": {
+    "chart": {
       "status": "implemented",
-      "description": "List context files with sizes, dates, and staleness indicators",
-      "added": "2025-12-06",
-      "added_by": "bootstrap"
+      "token": "?",
+      "description": "Compressed orientation snapshot for home use.",
+      "powershell": true,
+      "bash": false
     },
-    "search": {
+    "dock": {
       "status": "implemented",
-      "description": "Wedge-style term search across context with expansion hints",
-      "added": "2025-12-06",
-      "implemented": "2025-12-12",
-      "added_by": "bootstrap"
-    },
-    "trust": {
-      "status": "implemented",
-      "description": "Report confidence levels and known stale regions",
-      "added": "2025-12-06",
-      "added_by": "bootstrap",
-      "implemented": "2025-12-06",
-      "implemented_by": "sonnet-4.5"
-    },
-    "summarize": {
-      "status": "kit",
-      "description": "Generate or retrieve agent-maintained summary at specified depth",
-      "added": "2025-12-06",
-      "added_by": "bootstrap"
-    },
-    "forgive": {
-      "status": "kit",
-      "description": "Acknowledge drift, reset baseline without shame. Maintains .forgiveness-log.json",
-      "added": "2025-12-06",
-      "added_by": "bootstrap"
-    },
-    "honor": {
-      "status": "kit",
-      "description": "Mark something as learned-from, archive to honored/ with extracted lessons",
-      "added": "2025-12-06",
-      "added_by": "bootstrap"
-    },
-    "contract": {
-      "status": "kit",
-      "description": "Generate lean agent contracts to replace bloated system prompts",
-      "added": "2025-12-09",
-      "added_by": "opus-session"
-    },
-    "stake": {
-      "status": "kit",
-      "description": "Map decisions to responsibility concerns. Explicit ethics without theater.",
-      "added": "2025-12-09",
-      "added_by": "opus-session"
-    },
-    "locate": {
-      "status": "kit",
-      "description": "Identity resolution for multi-project context management. Determines git root, project location, and manages project switching.",
-      "added": "2026-01-07",
-      "added_by": "sonnet-4.5"
+      "token": ";",
+      "description": "Checkpoint current orientation into history.",
+      "powershell": true,
+      "bash": false
     },
     "start": {
       "status": "implemented",
-      "description": "Deterministic entry point. Shows current work, recent history, top todos without file exploration.",
-      "added": "2026-01-07",
-      "implemented": "2026-01-08",
-      "added_by": "sonnet-4.5"
-    },
-    "todos": {
-      "status": "implemented",
-      "description": "Structured TODO management with progress tracking, depth control, and auto-history updates.",
-      "added": "2026-01-07",
-      "implemented": "2026-01-08",
-      "added_by": "sonnet-4.5"
+      "token": ">",
+      "description": "Expanded orientation when chart alone is not enough.",
+      "powershell": true,
+      "bash": false
     },
     "state": {
       "status": "implemented",
-      "description": "Query project state with tag/status/confidence filters. Works with state.json.",
-      "added": "2026-01-07",
-      "implemented": "2026-01-09",
-      "added_by": "sonnet-4.5"
+      "token": ":",
+      "description": "Read and update project state.",
+      "powershell": true,
+      "bash": false
+    },
+    "todos": {
+      "status": "implemented",
+      "token": ":",
+      "description": "Manage pending work with zones, tags, and blockers.",
+      "powershell": true,
+      "bash": false
+    },
+    "search": {
+      "status": "implemented",
+      "token": "?",
+      "description": "Search context files for terms and nearby clues.",
+      "powershell": true,
+      "bash": false
+    },
+    "index": {
+      "status": "implemented",
+      "token": "@",
+      "description": "List context files with size and freshness.",
+      "powershell": true,
+      "bash": false
     },
     "decision": {
       "status": "implemented",
-      "description": "Query architectural decisions with tag/status/confidence filters. Wedge-based exploration of decisions.json.",
-      "added": "2026-01-09",
-      "implemented": "2026-01-09",
-      "added_by": "sonnet-4.5"
+      "token": "+",
+      "description": "Store and query important decisions.",
+      "powershell": true,
+      "bash": false
     },
-    "find": {
-      "status": "kit",
-      "description": "Find files/symbols in codebase without filesystem exploration.",
-      "added": "2026-01-07",
-      "added_by": "sonnet-4.5"
-    },
-    "finish": {
-      "status": "kit",
-      "description": "Complete iteration and prepare for handoff. Records work, updates history, optionally archives.",
-      "added": "2026-01-07",
-      "added_by": "sonnet-4.5"
-    },
-    "continue": {
-      "status": "kit",
-      "description": "Resume work after interruption without finishing iteration. Marks pause in history.",
-      "added": "2026-01-07",
-      "added_by": "sonnet-4.5"
-    },
-    "fear": {
+    "scent": {
       "status": "implemented",
-      "description": "Autonomous breakout from recursive loops via project rotation. Snapshots state, rotates context, enables regrounding with fresh perspective.",
-      "added": "2026-01-07",
-      "implemented": "2026-01-07",
-      "added_by": "sonnet-4.5"
+      "token": "?",
+      "description": "Leave lightweight cross-session signals.",
+      "powershell": true,
+      "bash": false
     },
-    "codebase": {
-      "status": "kit",
-      "description": "Query code location map from codebase.json with tag/type filters. Find files/patterns without filesystem exploration.",
-      "added": "2026-01-09",
-      "added_by": "sonnet-4.5"
-    },
-    "plan": {
+    "grip": {
       "status": "implemented",
-      "description": "Command discovery funnel. Shows available planning commands grouped by purpose. Guides wedge workflow.",
-      "added": "2026-01-09",
-      "implemented": "2026-01-09",
-      "added_by": "sonnet-4.5"
+      "token": "@",
+      "description": "Durable wedge memory for long-running threads.",
+      "powershell": true,
+      "bash": false
     },
-    "pack": {
+    "session": {
       "status": "implemented",
-      "description": "Create portable handoff archive of current context for migration between machines.",
-      "added": "2026-02-05",
-      "implemented": "2026-02-05",
-      "added_by": "sonnet-4"
-    },
-    "unpack": {
-      "status": "implemented",
-      "description": "Restore context from handoff archive. Supports --merge and --force options.",
-      "added": "2026-02-05",
-      "implemented": "2026-02-05",
-      "added_by": "sonnet-4"
+      "token": ":",
+      "description": "Create, list, and resume named sessions.",
+      "powershell": true,
+      "bash": false
     },
     "topic": {
       "status": "implemented",
-      "description": "Progressive context expansion via wedge-shaped search. Topics are expandable detail nodes with save-point semantics.",
-      "added": "2026-03-03",
-      "implemented": "2026-03-03",
-      "added_by": "opus-4.5"
+      "token": ":",
+      "description": "Expandable topic notes.",
+      "powershell": true,
+      "bash": false
     },
-    "phase": {
-      "status": "kit",
-      "description": "Phase transition model (PRAY cycle): Pause/Parse, Rejoin, Adapt, Yield. Internal state tracking for ctx as mini-OS.",
-      "added": "2026-03-03",
-      "added_by": "opus-4.5"
+    "trust": {
+      "status": "implemented",
+      "token": "~",
+      "description": "Report freshness and confidence of context files.",
+      "powershell": true,
+      "bash": false
     },
-    "narrative": {
-      "status": "kit",
-      "description": "History as story, not archive. Fiscal year scope with chapters capturing contribution, effectiveness, lessons, durability.",
-      "added": "2026-03-03",
-      "added_by": "opus-4.5"
+    "fear": {
+      "status": "implemented",
+      "token": "~",
+      "description": "Break recursive loops by rotating perspective.",
+      "powershell": true,
+      "bash": false
+    },
+    "plan": {
+      "status": "implemented",
+      "token": ">",
+      "description": "See implemented commands and growth paths.",
+      "powershell": true,
+      "bash": false
+    },
+    "pack": {
+      "status": "implemented",
+      "token": ";",
+      "description": "Create a portable context archive.",
+      "powershell": true,
+      "bash": false
+    },
+    "unpack": {
+      "status": "implemented",
+      "token": ";",
+      "description": "Restore a portable context archive.",
+      "powershell": true,
+      "bash": false
+    },
+    "register": {
+      "status": "implemented",
+      "token": "@",
+      "description": "Register the current directory as a project.",
+      "powershell": true,
+      "bash": false
     }
   }
 }
