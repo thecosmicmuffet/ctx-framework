@@ -26,6 +26,7 @@ $ErrorActionPreference = "Stop"
 
 # Load shared config library
 . (Join-Path $PSScriptRoot ".." "lib" "config.ps1")
+. (Join-Path $PSScriptRoot ".." "lib" "labeling.ps1")
 
 # Get context path using shared function
 $contextPath = Get-CtxContextPath
@@ -34,8 +35,9 @@ $gitRoot = $config.projects.($config.current_project).git_root
 
 # Augmented header
 if (-not $Quiet) {
-    $relativeCtx = $contextPath -replace [regex]::Escape($gitRoot), "[git]"
-    Write-Host "[git:$gitRoot ctx:$relativeCtx cmd:decision:exists]" -ForegroundColor DarkGray
+    $relativeCtx = if ($gitRoot) { $contextPath -replace [regex]::Escape($gitRoot), "[git]" } else { $contextPath }
+    $rootLabel = if ($gitRoot) { $gitRoot } else { "(concept)" }
+    Write-Host "[git:$rootLabel ctx:$relativeCtx cmd:decision:exists]" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -74,7 +76,7 @@ function Update-DecisionsMd {
     $mdContent = @"
 # Architectural Decisions
 
-**Project:** Stwoart (StartMenu -> Start Migration)
+**Project:** Current context
 **Updated:** $(Get-Date -Format 'yyyy-MM-dd')
 **Source:** decisions.json (this file is auto-generated)
 
@@ -294,6 +296,13 @@ function Add-Decision {
     $data.decisions += $newDecision
     Save-DecisionsData $data
     Write-Host "Added decision [$DecisionId]: $DecisionTitle" -ForegroundColor Green
+
+    # Emit implicit label — new decisions are high-salience artifacts
+    $decFile = Join-Path $contextPath "decisions.json"
+    $sal = switch ($newDecision.status) { "accepted" { 0.9 } "proposed" { 0.7 } default { 0.5 } }
+    Emit-ImplicitLabel -Path "decisions.json" -FilePath $decFile `
+        -Token "+" -Scope "Mind" -Salience $sal -Affordance "read" `
+        -Source "decision" -Note "added:$DecisionId"
 }
 
 # Update an existing decision
@@ -334,6 +343,14 @@ function Update-Decision {
     
     Save-DecisionsData $data
     Write-Host "[$DecisionId] updated: $($changes -join ', ')" -ForegroundColor Green
+
+    # Emit implicit label — updated decisions signal active reasoning
+    $decFile = Join-Path $contextPath "decisions.json"
+    $sal = switch ($d.status) { "accepted" { 0.9 } "proposed" { 0.7 } "deprecated" { 0.3 } "rejected" { 0.2 } default { 0.5 } }
+    $aff = if ($changes -contains "status") { "update" } else { "verify" }
+    Emit-ImplicitLabel -Path "decisions.json" -FilePath $decFile `
+        -Token "+" -Scope "Mind" -Salience $sal -Affordance $aff `
+        -Source "decision" -Note "updated:$DecisionId($($changes -join ','))"
 }
 
 # Remove a decision
@@ -410,3 +427,4 @@ switch ($Action.ToLower()) {
         Show-Decisions -Query $Action
     }
 }
+

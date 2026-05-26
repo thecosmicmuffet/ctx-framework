@@ -1,92 +1,47 @@
 #!/usr/bin/env pwsh
-# ctx start - Deterministic entry point
+param([switch]$Quiet)
 
-param(
-    [switch]$Quiet
-)
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..' 'lib' 'config.ps1')
 
-$ErrorActionPreference = "Stop"
-
-# Load shared config library
-. (Join-Path $PSScriptRoot ".." "lib" "config.ps1")
-
-# Get context path using shared function
 $contextPath = Get-CtxContextPath
 $config = Get-CtxConfig
-$projectName = $config.current_project
-$gitRoot = $config.projects.$projectName.git_root
+$project = $config.current_project
 
-# Augmented header
 if (-not $Quiet) {
-    $relativeCtx = $contextPath -replace [regex]::Escape($gitRoot), "[git]"
-    Write-Host "[git:$gitRoot ctx:$relativeCtx cmd:start:exists]" -ForegroundColor DarkGray
-    Write-Host ""
+    Write-Host "START: $project" -ForegroundColor Cyan
+    Write-Host ''
 }
 
-# Display current iteration info
-$stateFile = Join-Path $contextPath "state.md"
-$todosFile = Join-Path $contextPath "TODOS.md"
-$historyFile = Join-Path $contextPath "history.md"
+& (Join-Path $PSScriptRoot 'chart.ps1') $project
+Write-Host ''
 
-Write-Host "=== ITERATION START ===" -ForegroundColor Cyan
-Write-Host "Project: $projectName" -ForegroundColor White
-Write-Host "Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" -ForegroundColor White
-Write-Host ""
-
-# Current work from state.md
+$stateFile = Join-Path $contextPath 'state.dat'
 if (Test-Path $stateFile) {
-    Write-Host "--- CURRENT WORK ---" -ForegroundColor Yellow
-    $state = Get-Content $stateFile -Raw
-    
-    # Extract Active Work section
-    if ($state -match '(?s)## Active Work\s*(.+?)(?=\n## |$)') {
-        $activeWork = $matches[1].Trim()
-        Write-Host $activeWork
-    } else {
-        Write-Host "(No active work defined in state.md)"
-    }
-    Write-Host ""
-}
-
-# Recent changes from history.md
-if (Test-Path $historyFile) {
-    Write-Host "--- RECENT HISTORY (last 5 entries) ---" -ForegroundColor Yellow
-    $history = Get-Content $historyFile -Raw
-    
-    # Extract last 5 dated entries
-    $entries = [regex]::Matches($history, '(?m)^### \d{4}-\d{2}-\d{2}.*?(?=\n### \d{4}|\z)')
-    $recent = $entries | Select-Object -Last 5
-    
-    if ($recent) {
-        foreach ($entry in $recent) {
-            Write-Host $entry.Value.Trim()
-            Write-Host ""
+    try {
+        $state = Get-Content $stateFile -Raw | ConvertFrom-Json
+        Write-Host 'STATE' -ForegroundColor Yellow
+        Write-Host "  phase: $($state.phase)"
+        $active = @($state.work_items | Where-Object { $_.status -in @('active', 'next', 'blocked') } | Select-Object -First 5)
+        foreach ($item in $active) {
+            Write-Host "  [$($item.status)] $($item.id) $($item.title)" -ForegroundColor Gray
         }
-    } else {
-        Write-Host "(No history entries yet)"
-        Write-Host ""
-    }
+        Write-Host ''
+    } catch {}
 }
 
-# Top todos from TODOS.md
+$todosFile = Join-Path $contextPath 'todos.json'
 if (Test-Path $todosFile) {
-    Write-Host "--- TOP PRIORITIES ---" -ForegroundColor Yellow
-    $todos = Get-Content $todosFile -Raw
-    
-    # Extract uncompleted checkboxes (lines with - [ ] or ## [ ])
-    $incomplete = [regex]::Matches($todos, '(?m)^[\s]*(?:- \[ \]|## \[ \]).*$')
-    $top = $incomplete | Select-Object -First 5
-    
-    if ($top) {
-        foreach ($item in $top) {
-            Write-Host $item.Value.Trim()
+    try {
+        $todos = Get-Content $todosFile -Raw | ConvertFrom-Json
+        $open = @($todos.todos | Where-Object { $_.status -ne 'complete' })
+        Write-Host 'TODOS' -ForegroundColor Yellow
+        foreach ($todo in ($open | Select-Object -First 5)) {
+            Write-Host "  [$($todo.id)] $($todo.title)" -ForegroundColor Gray
         }
-    } else {
-        Write-Host "(No pending todos)"
-    }
-    Write-Host ""
+        Write-Host ''
+    } catch {}
 }
 
-Write-Host "=== Ready to proceed ===" -ForegroundColor Green
-Write-Host ""
-Write-Host "Commands: ctx state | ctx todos | ctx search <term> | ctx index | ctx finish"
+Write-Host 'Ready.' -ForegroundColor Green
+Write-Host 'Use: ctx state | ctx todos | ctx search <term> | ctx dock' -ForegroundColor DarkGray

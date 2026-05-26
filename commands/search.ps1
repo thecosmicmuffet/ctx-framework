@@ -22,6 +22,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Load implicit labeling
+. (Join-Path $PSScriptRoot ".." "lib" "labeling.ps1")
+
 # Use resolved context directory from environment if available
 $DefaultContextDir = if ($env:CTX_CONTEXT_DIR) {
     $env:CTX_CONTEXT_DIR
@@ -34,8 +37,8 @@ $DefaultContextDir = if ($env:CTX_CONTEXT_DIR) {
 $ContextDir = $DefaultContextDir
 
 if (-not (Test-Path $ContextDir)) {
-    Write-Host "No .ctx directory found at: $ContextDir" -ForegroundColor Red
-    Write-Host "Create context files first or run from project root." -ForegroundColor Gray
+    Write-Host "No context directory found at: $ContextDir" -ForegroundColor Red
+    Write-Host "Create project context first or run inside a registered project." -ForegroundColor Gray
     exit 1
 }
 
@@ -47,7 +50,7 @@ if ($Depth -gt 10) { $Depth = 10 }
 $caseSensitive = $Case.IsPresent
 $matchType = if ($caseSensitive) { "CaseSensitive" } else { "SimpleMatch" }
 
-Write-Host "SEARCH: ""$SearchTerm"" in .ctx/" -ForegroundColor Cyan
+Write-Host "SEARCH: ""$SearchTerm"" in context" -ForegroundColor Cyan
 Write-Host ""
 
 $allMatches = @()
@@ -159,8 +162,7 @@ foreach ($fileGroup in $groupedByFile) {
 
 # Summary
 Write-Host "Found $($allMatches.Count) matches in $filesWithMatches files." -ForegroundColor Cyan
-
-# Expand: find nearby terms
+`n# Expand: find nearby terms
 if ($Expand) {
     Write-Host ""
     $nearbyTerms = @{}
@@ -189,3 +191,4 @@ if ($Expand) {
 }
 
 exit 0
+

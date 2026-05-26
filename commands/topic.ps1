@@ -15,6 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot ".." "lib" "config.ps1")
+. (Join-Path $PSScriptRoot ".." "lib" "labeling.ps1")
 
 $contextPath = Get-CtxContextPath
 $topicsDir = Join-Path $contextPath "topics"
@@ -132,8 +133,7 @@ $summaryText
     
     Set-Content -Path $topicPath -Value $template
     Write-Host "Created topic: $TopicName" -ForegroundColor Green
-    Write-Host "Path: $topicPath" -ForegroundColor DarkGray
-}
+    Write-Host "Path: $topicPath" -ForegroundColor DarkGray`n}
 
 function Archive-Topic {
     param([string]$TopicName)
@@ -154,8 +154,7 @@ function Archive-Topic {
     Move-Item -Path $topicPath -Destination $archivePath
     
     Write-Host "Archived topic: $TopicName" -ForegroundColor Green
-    Write-Host "Location: $archivePath" -ForegroundColor DarkGray
-}
+    Write-Host "Location: $archivePath" -ForegroundColor DarkGray`n}
 
 # Main dispatch
 switch -Regex ($Action) {
@@ -181,3 +180,4 @@ switch -Regex ($Action) {
         Show-Topic -TopicName $Action
     }
 }
+

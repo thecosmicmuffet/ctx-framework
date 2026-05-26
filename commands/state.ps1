@@ -37,18 +37,19 @@ $gitRoot = $config.projects.($config.current_project).git_root
 
 # Augmented header
 if (-not $Quiet) {
-    $relativeCtx = $contextPath -replace [regex]::Escape($gitRoot), "[git]"
-    Write-Host "[git:$gitRoot ctx:$relativeCtx cmd:state:exists]" -ForegroundColor DarkGray
+    $relativeCtx = if ($gitRoot) { $contextPath -replace [regex]::Escape($gitRoot), "[git]" } else { $contextPath }
+    $rootLabel = if ($gitRoot) { $gitRoot } else { "(concept)" }
+    Write-Host "[git:$rootLabel ctx:$relativeCtx cmd:state:exists]" -ForegroundColor DarkGray
     Write-Host ""
 }
 
-# File paths
-$stateJson = Join-Path $contextPath "state.json"
-$stateMd = Join-Path $contextPath "state.md"
+# File paths — state data lives in state.dat (state.json is a wetlands stub)
+$stateDat = Join-Path $contextPath "state.dat"
+$stateStub = Join-Path $contextPath "state.json"
 
-# Initialize state.json if needed
+# Initialize state.dat if needed
 function Initialize-State {
-    if (-not (Test-Path $stateJson)) {
+    if (-not (Test-Path $stateDat)) {
         $initial = @{
             version = "1.0"
             phase = "initial"
@@ -60,21 +61,32 @@ function Initialize-State {
                 low = @()
             }
         }
-        $initial | ConvertTo-Json -Depth 10 | Set-Content $stateJson
+        $initial | ConvertTo-Json -Depth 10 | Set-Content $stateDat
+    }
+    # Ensure wetlands stub exists
+    if (-not (Test-Path $stateStub) -or -not ((Get-Content $stateStub -First 1 -ErrorAction SilentlyContinue) -match 'PROTECTED')) {
+        $stub = @"
+// 🪺 PROTECTED WETLANDS — do not read directly
+//
+// This file is managed by ctx commands. Do not parse, grep, or edit it.
+// USE: ctx state | ctx chart | ctx chart --set "> goal"
+// Data is in state.dat. Use commands to maintain single source of truth.
+"@
+        Set-Content $stateStub $stub -Encoding UTF8
     }
 }
 
 # Load state
 function Get-StateData {
     Initialize-State
-    return Get-Content $stateJson -Raw | ConvertFrom-Json
+    return Get-Content $stateDat -Raw | ConvertFrom-Json
 }
 
 # Save state
 function Save-StateData {
     param($Data)
     $Data.updated = (Get-Date -Format 'yyyy-MM-dd')
-    $Data | ConvertTo-Json -Depth 10 | Set-Content $stateJson
+    $Data | ConvertTo-Json -Depth 10 | Set-Content $stateDat
 }
 
 # Show summary
