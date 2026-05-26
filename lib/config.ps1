@@ -1,35 +1,35 @@
-# config.ps1 - Shared configuration loading for ctx commands
-# Search upward from PWD to find .ctxconfig (same logic as ctx.ps1)
-
-function Find-CtxConfig {
-    $SearchDir = Get-Location
-    while ($SearchDir) {
-        $TestPath = Join-Path $SearchDir ".ctxconfig"
-        if (Test-Path $TestPath) {
-            return $TestPath
-        }
-        $Parent = Split-Path -Parent $SearchDir
-        if ($Parent -eq $SearchDir) { break }
-        $SearchDir = $Parent
-    }
-    return $null
-}
+. (Join-Path $PSScriptRoot 'resolve.ps1')
+$_extra = Join-Path $PSScriptRoot 'resolve-additions.ps1'
+if (Test-Path $_extra) { . $_extra }
 
 function Get-CtxConfig {
-    $configPath = Find-CtxConfig
-    if (-not $configPath) {
-        Write-Error ".ctxconfig not found. Run bootstrap.ps1 first or navigate to a ctx-enabled project."
+    param([string]$ProjectName)
+    $resolved = if ($ProjectName) { Resolve-CtxProjectByName $ProjectName } else { Resolve-CtxProject }
+    if (-not $resolved.ProjectId) {
+        Write-Error "No project context found. Run 'ctx register' inside a project first."
         exit 1
     }
-    return Get-Content $configPath -Raw | ConvertFrom-Json
+    Set-CtxEnvironment $resolved
+    return [PSCustomObject]@{
+        current_project = $resolved.ProjectId
+        projects = [PSCustomObject]@{
+            $resolved.ProjectId = [PSCustomObject]@{
+                git_root = $resolved.CanonicalRoot
+                project_root = if ($resolved.CanonicalRoot) { $resolved.CanonicalRoot } else { $resolved.ContextDir }
+                context_dir = $resolved.ContextDir
+                type = $resolved.Type
+            }
+        }
+    }
 }
 
 function Get-CtxContextPath {
-    $config = Get-CtxConfig
-    $projectName = $config.current_project
-    $projectConfig = $config.projects.$projectName
-    $gitRoot = $projectConfig.git_root
-    $projectRoot = $projectConfig.project_root -replace '\[git\]', $gitRoot
-    $contextPath = $projectConfig.context_dir -replace '\[git\]', $gitRoot -replace '\[project\]', $projectRoot
-    return $contextPath
+    param([string]$ProjectName)
+    $config = Get-CtxConfig -ProjectName $ProjectName
+    $projectName_ = $config.current_project
+    $ctx = $config.projects.$projectName_.context_dir
+    if (-not (Test-Path $ctx)) {
+        New-Item -ItemType Directory -Path $ctx -Force | Out-Null
+    }
+    return $ctx
 }
