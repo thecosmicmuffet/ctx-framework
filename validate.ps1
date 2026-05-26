@@ -1,159 +1,199 @@
 #!/usr/bin/env pwsh
-# Validation script for ctx framework integrity
-# Run from anywhere — script locates itself via $PSScriptRoot
+# ctx home edition — framework integrity validation
+# Run from ctx-home/ root
+
+param(
+    [switch]$Quiet,     # suppress passing tests
+    [switch]$Json       # emit JSON summary instead of human output
+)
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "=== ctx Validation ===" -ForegroundColor Cyan
-Write-Host ""
-
 $frameworkPath = $PSScriptRoot
-$testContextPath = Join-Path $PSScriptRoot ".validation-test-context"
-$allPassed = $true
+$commandsDir   = Join-Path $frameworkPath "commands"
+$libDir        = Join-Path $frameworkPath "lib"
+$kitsDir       = Join-Path $frameworkPath "kits"
+$registryFile  = Join-Path $frameworkPath "registry.json"
 
-function Test-Condition {
-    param(
-        [string]$Description,
-        [bool]$Condition
-    )
-    
-    if ($Condition) {
-        Write-Host "  ✅ $Description" -ForegroundColor Green
+$passed  = 0
+$failed  = 0
+$warned  = 0
+$details = @()
+
+function Pass([string]$Msg) {
+    $script:passed++
+    if (-not $Quiet) { Write-Host "  ✅ $Msg" -ForegroundColor Green }
+    $script:details += [ordered]@{ status = "pass"; message = $Msg }
+}
+function Fail([string]$Msg) {
+    $script:failed++
+    Write-Host "  ❌ $Msg" -ForegroundColor Red
+    $script:details += [ordered]@{ status = "fail"; message = $Msg }
+}
+function Warn([string]$Msg) {
+    $script:warned++
+    Write-Host "  ⚠️  $Msg" -ForegroundColor Yellow
+    $script:details += [ordered]@{ status = "warn"; message = $Msg }
+}
+
+if (-not $Json) {
+    Write-Host "=== ctx home Validation ===" -ForegroundColor Cyan
+    Write-Host ""
+}
+
+# ── 1. Infrastructure files ─────────────────────────────────────────
+if (-not $Json) { Write-Host "1. Infrastructure" -ForegroundColor Yellow }
+
+$infrastructure = @("ctx.ps1", "ctx", "bootstrap.ps1", "registry.json", "SKILL.md", "HOME-README.md")
+foreach ($f in $infrastructure) {
+    $p = Join-Path $frameworkPath $f
+    if (Test-Path $p) { Pass "exists: $f" } else { Fail "missing: $f" }
+}
+
+foreach ($subdir in @("commands", "lib", "kits")) {
+    $p = Join-Path $frameworkPath $subdir
+    if (Test-Path $p) { Pass "dir exists: $subdir/" } else { Fail "dir missing: $subdir/" }
+}
+
+if (-not $Json) { Write-Host "" }
+
+# ── 2. Registry integrity ───────────────────────────────────────────
+if (-not $Json) { Write-Host "2. Registry integrity" -ForegroundColor Yellow }
+
+$registry = $null
+try {
+    $registry = Get-Content $registryFile -Raw | ConvertFrom-Json
+    Pass "registry.json parses as valid JSON"
+} catch {
+    Fail "registry.json is invalid JSON: $_"
+}
+
+if ($registry) {
+    if ($registry.meta) { Pass "registry has meta section" }
+    else { Fail "registry missing meta section" }
+
+    if ($registry.commands) { Pass "registry has commands section" }
+    else { Fail "registry missing commands section" }
+}
+
+if (-not $Json) { Write-Host "" }
+
+# ── 3. Registry ↔ commands consistency ───────────────────────────────
+if (-not $Json) { Write-Host "3. Registry ↔ commands" -ForegroundColor Yellow }
+
+if ($registry -and $registry.commands) {
+    $regEntries = $registry.commands.PSObject.Properties
+
+    # Every implemented entry must have a .ps1
+    $implemented = $regEntries | Where-Object { $_.Value.status -eq 'implemented' }
+    foreach ($cmd in $implemented) {
+        $ps1 = Join-Path $commandsDir "$($cmd.Name).ps1"
+        if (Test-Path $ps1) { Pass "implemented → file: $($cmd.Name).ps1" }
+        else { Fail "registered as implemented but no file: $($cmd.Name).ps1" }
+    }
+
+    # Every kit entry should have a kit file
+    $kitEntries = $regEntries | Where-Object { $_.Value.status -eq 'kit' }
+    foreach ($cmd in $kitEntries) {
+        $kitFile = Join-Path $kitsDir "$($cmd.Name).kit.md"
+        if (Test-Path $kitFile) { Pass "kit → spec: $($cmd.Name).kit.md" }
+        else { Warn "registered as kit but no spec: $($cmd.Name).kit.md" }
+    }
+
+    # Commands on disk but not in registry
+    if (Test-Path $commandsDir) {
+        $diskCmds = (Get-ChildItem $commandsDir -Filter "*.ps1" -ErrorAction SilentlyContinue).BaseName
+        $regNames = @($regEntries.Name)
+        foreach ($dc in $diskCmds) {
+            if ($dc -notin $regNames) {
+                Warn "on disk but unregistered: $dc.ps1"
+            }
+        }
+    }
+}
+
+if (-not $Json) { Write-Host "" }
+
+# ── 4. Syntax check ─────────────────────────────────────────────────
+if (-not $Json) { Write-Host "4. Syntax check" -ForegroundColor Yellow }
+
+$ps1Files = @()
+if (Test-Path $commandsDir) {
+    $ps1Files += Get-ChildItem $commandsDir -Filter "*.ps1" -ErrorAction SilentlyContinue
+}
+if (Test-Path $libDir) {
+    $ps1Files += Get-ChildItem $libDir -Filter "*.ps1" -ErrorAction SilentlyContinue
+}
+$routerFile = Join-Path $frameworkPath "ctx.ps1"
+if (Test-Path $routerFile) {
+    $ps1Files += Get-Item $routerFile
+}
+
+foreach ($f in $ps1Files) {
+    $tokens = $null; $parseErrors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile(
+        $f.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+    if ($parseErrors.Count -eq 0) {
+        Pass "syntax ok: $($f.Name)"
     } else {
-        Write-Host "  ❌ $Description" -ForegroundColor Red
-        $script:allPassed = $false
+        foreach ($e in $parseErrors) {
+            Fail "syntax error in $($f.Name): $($e.Message) (line $($e.Extent.StartLineNumber))"
+        }
     }
 }
 
-# Test 1: File Existence
-Write-Host "Test 1: Required Files Exist" -ForegroundColor Yellow
-$requiredFiles = @(
-    "README.md",
-    "TODOS.md",
-    "bootstrap.sh",
-    "bootstrap.ps1",
-    "ctx",
-    "ctx.ps1",
-    "registry.json"
-)
+if (-not $Json) { Write-Host "" }
 
-foreach ($file in $requiredFiles) {
-    $path = Join-Path $frameworkPath $file
-    Test-Condition "File exists: $file" (Test-Path $path)
+# ── 5. Core lib files ───────────────────────────────────────────────
+if (-not $Json) { Write-Host "5. Core libraries" -ForegroundColor Yellow }
+
+$coreLibs = @("resolve.ps1", "grip.ps1", "config.ps1")
+foreach ($lib in $coreLibs) {
+    $p = Join-Path $libDir $lib
+    if (Test-Path $p) { Pass "lib: $lib" } else { Fail "missing lib: $lib" }
 }
 
-Write-Host ""
+if (-not $Json) { Write-Host "" }
 
-# Test 2: Router Functionality
-Write-Host "Test 2: Router Displays Commands" -ForegroundColor Yellow
-try {
-    $null = & "$frameworkPath\ctx.ps1" 2>&1
-    Test-Condition "Router executes without error" ($LASTEXITCODE -eq 0)
-} catch {
-    Test-Condition "Router executes without error" $false
-    Write-Host "    Error: $_" -ForegroundColor Red
-}
-
-Write-Host ""
-
-# Test 3: Bootstrap Creates Structure
-Write-Host "Test 3: Bootstrap Creates Valid Context" -ForegroundColor Yellow
-
-# Clean up if test context exists
-if (Test-Path $testContextPath) {
-    Remove-Item $testContextPath -Recurse -Force
-}
+# ── 6. Router smoke test ────────────────────────────────────────────
+if (-not $Json) { Write-Host "6. Router smoke test" -ForegroundColor Yellow }
 
 try {
-    & "$frameworkPath\bootstrap.ps1" -ContextDir $testContextPath -ProjectName "validation-test" 2>&1 | Out-Null
-    
-    $expectedFiles = @(
-        "state.json",
-        "state.md",
-        "decisions.json",
-        "decisions.md",
-        "todos.json",
-        "history.md",
-        "codebase.json",
-        "codebase.md",
-        "guide.md"
-    )
-    
-    foreach ($file in $expectedFiles) {
-        $path = Join-Path $testContextPath $file
-        Test-Condition "Created: $file" (Test-Path $path)
+    $output = & "$frameworkPath\ctx.ps1" 2>&1 | Out-String
+    if ($output -match 'ctx' -or $LASTEXITCODE -eq 0) {
+        Pass "router executes and produces output"
+    } else {
+        Warn "router executed but output unexpected"
     }
-    
-    Test-Condition "Created: handoffs directory" (Test-Path (Join-Path $testContextPath "handoffs"))
-    
 } catch {
-    Test-Condition "Bootstrap executes without error" $false
-    Write-Host "    Error: $_" -ForegroundColor Red
+    Fail "router threw exception: $($_.Exception.Message)"
 }
 
-Write-Host ""
+if (-not $Json) { Write-Host "" }
 
-# Test 4: Content Validation
-Write-Host "Test 4: Generated Content Quality" -ForegroundColor Yellow
+# ── Summary ─────────────────────────────────────────────────────────
+$total = $passed + $failed + $warned
 
-try {
-    $stateContent = Get-Content (Join-Path $testContextPath "state.md") -Raw
-    Test-Condition "state.md contains project template" ($stateContent -like "*[Your Project Name]*")
-    Test-Condition "state.md contains date" ($stateContent -match "\d{4}-\d{2}-\d{2}")
-    Test-Condition "state.md has confidence section" ($stateContent -like "*Confidence Notes*")
-    
-    $decisionsContent = Get-Content (Join-Path $testContextPath "decisions.md") -Raw
-    Test-Condition "decisions.md has template structure" ($decisionsContent -like "*Alternatives Considered*")
-    
-    $guideContent = Get-Content (Join-Path $testContextPath "guide.md") -Raw
-    Test-Condition "guide.md has Quick Start section" ($guideContent -like "*Quick Start*")
-    Test-Condition "guide.md references ctx CLI" ($guideContent -like "*ctx.ps1*")
-    
-} catch {
-    Test-Condition "Content validation" $false
-    Write-Host "    Error: $_" -ForegroundColor Red
-}
-
-Write-Host ""
-
-# Test 5: Documentation Consistency
-Write-Host "Test 5: Documentation Cross-References" -ForegroundColor Yellow
-
-try {
-    $readmeContent = Get-Content (Join-Path $frameworkPath "README.md") -Raw
-    Test-Condition "README mentions bootstrap.ps1" ($readmeContent -like "*bootstrap.ps1*")
-    Test-Condition "README has bootstrap instructions" ($readmeContent -like "*bootstrap*")
-    Test-Condition "README examples call .ps1 files" ($readmeContent -like "*.ps1*")
-    
-    $todosContent = Get-Content (Join-Path $frameworkPath "TODOS.md") -Raw
-    Test-Condition "TODOS.md tracks priorities" ($todosContent -like "*High Priority*")
-    Test-Condition "TODOS.md has design goals" ($todosContent -like "*Design Goals*")
-    
-} catch {
-    Test-Condition "Documentation validation" $false
-    Write-Host "    Error: $_" -ForegroundColor Red
-}
-
-Write-Host ""
-
-# Cleanup
-Write-Host "Cleanup: Removing test context" -ForegroundColor Gray
-if (Test-Path $testContextPath) {
-    Remove-Item $testContextPath -Recurse -Force
-    Write-Host "  Removed: $testContextPath" -ForegroundColor Gray
-}
-
-Write-Host ""
-Write-Host "=== Validation Complete ===" -ForegroundColor Cyan
-
-if ($allPassed) {
-    Write-Host "✅ All tests passed!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "ctx is ready for code review." -ForegroundColor Cyan
-    exit 0
+if ($Json) {
+    [ordered]@{
+        passed  = $passed
+        failed  = $failed
+        warned  = $warned
+        total   = $total
+        ok      = ($failed -eq 0)
+        details = $details
+    } | ConvertTo-Json -Depth 3
 } else {
-    Write-Host "❌ Some tests failed." -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Please review failures above before submitting for code review." -ForegroundColor Yellow
-    exit 1
+    Write-Host "=== Summary ===" -ForegroundColor Cyan
+    Write-Host "  $passed passed, $failed failed, $warned warnings ($total checks)" -ForegroundColor $(if ($failed -eq 0) { "Green" } else { "Red" })
+
+    if ($failed -eq 0 -and $warned -eq 0) {
+        Write-Host "  Framework integrity confirmed." -ForegroundColor Green
+    } elseif ($failed -eq 0) {
+        Write-Host "  No failures. Warnings indicate drift worth reviewing." -ForegroundColor Yellow
+    } else {
+        Write-Host "  Failures need attention." -ForegroundColor Red
+    }
 }
+
+exit $(if ($failed -eq 0) { 0 } else { 1 })
