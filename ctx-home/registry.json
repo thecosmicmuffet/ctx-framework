@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "created": "2026-05-25T00:00:00Z",
+    "updated": "2026-05-25T00:00:00Z",
+    "description": "Home edition ctx command registry.",
+    "tokens": {
+      "@": "ANCHOR — where things are",
+      ">": "HEADING — where you're going",
+      ":": "FOCUS — what you're doing now",
+      ";": "SEQUENCE — transitions and checkpoints",
+      "?": "QUERY — discovery and scanning",
+      "+": "RECORD — accumulated knowledge",
+      "~": "ASSESS — freshness and approximation",
+      "!": "BIND — commitment and deliberate signals",
+      ".": "EMIT — compact chart output"
+    },
+    "research_tree": {
+      "description": "Lightweight growth map for home use.",
+      "paths": [
+        {
+          "from": "register",
+          "to": "chart",
+          "relation": "registration enables project chart resolution"
+        },
+        {
+          "from": "chart",
+          "to": "dock",
+          "relation": "dock persists the current chart"
+        },
+        {
+          "from": "state",
+          "to": "start",
+          "relation": "start expands orientation from current state"
+        },
+        {
+          "from": "todos",
+          "to": "start",
+          "relation": "start surfaces near work"
+        },
+        {
+          "from": "search",
+          "to": "topic",
+          "relation": "search results can crystallize into topics"
+        },
+        {
+          "from": "decision",
+          "to": "plan",
+          "relation": "decisions shape planning"
+        },
+        {
+          "from": "grip",
+          "to": "session",
+          "relation": "grip gives named sessions durable memory"
+        },
+        {
+          "from": "pack",
+          "to": "unpack",
+          "relation": "portable archives restore into a fresh harbor"
+        }
+      ]
+    }
+  },
+  "commands": {
+    "chart": {
+      "status": "implemented",
+      "token": "?",
+      "description": "Compressed orientation snapshot for home use.",
+      "powershell": true,
+      "bash": false
+    },
+    "dock": {
+      "status": "implemented",
+      "token": ";",
+      "description": "Checkpoint current orientation into history.",
+      "powershell": true,
+      "bash": false
+    },
+    "start": {
+      "status": "implemented",
+      "token": ">",
+      "description": "Expanded orientation when chart alone is not enough.",
+      "powershell": true,
+      "bash": false
+    },
+    "state": {
+      "status": "implemented",
+      "token": ":",
+      "description": "Read and update project state.",
+      "powershell": true,
+      "bash": false
+    },
+    "todos": {
+      "status": "implemented",
+      "token": ":",
+      "description": "Manage pending work with zones, tags, and blockers.",
+      "powershell": true,
+      "bash": false
+    },
+    "search": {
+      "status": "implemented",
+      "token": "?",
+      "description": "Search context files for terms and nearby clues.",
+      "powershell": true,
+      "bash": false
+    },
+    "index": {
+      "status": "implemented",
+      "token": "@",
+      "description": "List context files with size and freshness.",
+      "powershell": true,
+      "bash": false
+    },
+    "decision": {
+      "status": "implemented",
+      "token": "+",
+      "description": "Store and query important decisions.",
+      "powershell": true,
+      "bash": false
+    },
+    "scent": {
+      "status": "implemented",
+      "token": "?",
+      "description": "Leave lightweight cross-session signals.",
+      "powershell": true,
+      "bash": false
+    },
+    "grip": {
+      "status": "implemented",
+      "token": "@",
+      "description": "Durable wedge memory for long-running threads.",
+      "powershell": true,
+      "bash": false
+    },
+    "session": {
+      "status": "implemented",
+      "token": ":",
+      "description": "Create, list, and resume named sessions.",
+      "powershell": true,
+      "bash": false
+    },
+    "topic": {
+      "status": "implemented",
+      "token": ":",
+      "description": "Expandable topic notes.",
+      "powershell": true,
+      "bash": false
+    },
+    "trust": {
+      "status": "implemented",
+      "token": "~",
+      "description": "Report freshness and confidence of context files.",
+      "powershell": true,
+      "bash": false
+    },
+    "fear": {
+      "status": "implemented",
+      "token": "~",
+      "description": "Break recursive loops by rotating perspective.",
+      "powershell": true,
+      "bash": false
+    },
+    "plan": {
+      "status": "implemented",
+      "token": ">",
+      "description": "See implemented commands and growth paths.",
+      "powershell": true,
+      "bash": false
+    },
+    "pack": {
+      "status": "implemented",
+      "token": ";",
+      "description": "Create a portable context archive.",
+      "powershell": true,
+      "bash": false
+    },
+    "unpack": {
+      "status": "implemented",
+      "token": ";",
+      "description": "Restore a portable context archive.",
+      "powershell": true,
+      "bash": false
+    },
+    "register": {
+      "status": "implemented",
+      "token": "@",
+      "description": "Register the current directory as a project.",
+      "powershell": true,
+      "bash": false
+    }
+  }
+}
